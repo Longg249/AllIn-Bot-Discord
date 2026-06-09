@@ -1,0 +1,1 @@
+{"code":"invalid_argument","message":"unmarshal message: unmarshal into *list_auction_itemsv1.ListAuctionItemsRequest: proto: syntax error (line 1:2): invalid value \\"}

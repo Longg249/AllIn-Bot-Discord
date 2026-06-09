@@ -1,0 +1,16 @@
+=== collection ===
+jData.data type: dict
+jData.data keys: ['code', 'data', 'msg']
+  key "code" -> int: 0
+  key "data" -> dict: {'list': [{'id': 10165, 'objectID': 15010050001, 'objectName': '黄金瞪羚', 'length': 2, 'width': 2, 'gra
+  key "msg" -> str: ok
+
+
+=== key ===
+jData.data type: dict
+jData.data keys: ['code', 'data', 'msg']
+  key "code" -> int: 0
+  key "data" -> dict: {'list': [{'id': 10060, 'objectID': 15050100008, 'objectName': '变电站技术室', 'length': 1, 'width': 1, 'g
+  key "msg" -> str: ok
+
+

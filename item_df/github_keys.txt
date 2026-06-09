@@ -1,0 +1,34 @@
+=== collection ===
+Fields/keys in item: ['id', 'objectID', 'objectName', 'length', 'width', 'grade', 'weight', 'primaryClass', 'secondClass', 'secondClassCN', 'desc', 'pic', 'prePic', 'propsDetail']
+  id: 10165
+  objectID: 15010050001
+  objectName: '黄金瞪羚'
+  length: 2
+  width: 2
+  grade: 6
+  weight: '2.9'
+  primaryClass: 'props'
+  secondClass: 'collection'
+  secondClassCN: '收集品'
+  desc: '黄金瞪羚，约300年历史，被阿萨拉王子用于追求潜在伴侣。'
+  pic: 'https://playerhub.df.qq.com/playerhub/60004/object/15010050001.png'
+  prePic: 'https://playerhub.df.qq.com/playerhub/60004/object/p_15010050001.png'
+  propsDetail: {'type': '工艺藏品', 'propsSource': '长弓溪谷-钻石皇后酒店,航天基地-核心区'}
+
+=== key ===
+Fields/keys in item: ['id', 'objectID', 'objectName', 'length', 'width', 'grade', 'weight', 'primaryClass', 'secondClass', 'secondClassCN', 'desc', 'pic', 'prePic', 'propsDetail']
+  id: 10060
+  objectID: 15050100008
+  objectName: '变电站技术室'
+  length: 1
+  width: 1
+  grade: 6
+  weight: '0.05'
+  primaryClass: 'props'
+  secondClass: 'key'
+  secondClassCN: '钥匙'
+  desc: '用于开启变电站技术室的钥匙。'
+  pic: 'https://playerhub.df.qq.com/playerhub/60004/object/key/零号大坝白卡.png'
+  prePic: 'https://playerhub.df.qq.com/playerhub/60004/object/key/p_零号大坝白卡.png'
+  propsDetail: {'useMap': '零号大坝', 'usePlace': '零号大坝-大变电站', 'durability': 20}
+
