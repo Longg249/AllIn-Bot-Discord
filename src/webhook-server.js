@@ -106,22 +106,28 @@ async function sendToChannel(client, channelId, content) {
 }
 
 async function handleNewsWebhook(client, data, res) {
-  const { channel, items } = data;
-  if (!items || !Array.isArray(items) || items.length === 0) {
+  const { channel, items, content } = data;
+  let msg = '';
+  
+  if (items && Array.isArray(items) && items.length > 0) {
+    // Format array items
+    dataStore.setNews(items);
+    msg = '📰 **TIN TỨC MỚI NHẤT**\n\n';
+    items.forEach((item, i) => {
+      msg += `${i + 1}. [${item.title}](${item.link})`;
+      if (item.source) msg += ` - *${item.source}*`;
+      msg += '\n';
+    });
+  } else if (content) {
+    // Handle plain text content from pusher
+    msg = content;
+    // Mock items for store to show 'alive' status
+    dataStore.setNews([{ title: 'Cập nhật tin tức', link: '#' }]);
+  } else {
     res.writeHead(400);
-    res.end(JSON.stringify({ error: 'Need items[]' }));
+    res.end(JSON.stringify({ error: 'Need items[] or content string' }));
     return;
   }
-
-  // Lưu vào store
-  dataStore.setNews(items);
-
-  let msg = '📰 **TIN TỨC MỚI NHẤT**\n\n';
-  items.forEach((item, i) => {
-    msg += `${i + 1}. [${item.title}](${item.link})`;
-    if (item.source) msg += ` - *${item.source}*`;
-    msg += '\n';
-  });
 
   try {
     if (channel) {
@@ -129,7 +135,6 @@ async function handleNewsWebhook(client, data, res) {
     } else {
       const { getNewsSubscriptions } = require('./database');
       const subs = await getNewsSubscriptions();
-      if (subs.length === 0) throw new Error('No news channel subscriptions');
       for (const sub of subs) {
         try {
           await sendToChannel(client, sub.channel_id, msg);
