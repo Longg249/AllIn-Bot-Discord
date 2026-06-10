@@ -21,8 +21,20 @@ module.exports = async (interaction, { turnTimers, clearTimer, setTimer }) => {
         await handleHelp(interaction);
         break;
 
+      case 'noitu':
+        await handleStart(interaction, 'noitu', { clearTimer });
+        break;
+
+      case 'taixiu':
+        await handleStart(interaction, 'over-under', { clearTimer });
+        break;
+
+      case 'slot':
+        await handleSlot(interaction);
+        break;
+
       case 'start': {
-        const gameType = options.getString('game');
+        const gameType = options.getString('game') || options.getString('name'); // compatible with old and /game
         await handleStart(interaction, gameType, { clearTimer });
         break;
       }
@@ -157,7 +169,7 @@ module.exports = async (interaction, { turnTimers, clearTimer, setTimer }) => {
     }
   } catch (err) {
     console.error(`Slash command ${commandName} error:`, err.message);
-    if (interaction.replied) {
+    if (interaction.replied || interaction.deferred) {
       try { await interaction.editReply('❌ Đã xảy ra lỗi khi xử lý lệnh.'); } catch (_) {}
     } else {
       try { await interaction.reply('❌ Đã xảy ra lỗi khi xử lý lệnh.'); } catch (_) {}
@@ -169,8 +181,9 @@ async function handleHelp(interaction) {
   const helpMsg =
     `📖 **DANH SÁCH LỆNH CỦA BOT**\n\n` +
     `🎮 **Trò Chơi:**\n` +
-    `- \`/start game:noitu\`: Bắt đầu chơi Nối Từ.\n` +
-    `- \`/start game:over-under\`: Bắt đầu chơi Tài Xỉu.\n` +
+    `- \`/noitu\`: Bắt đầu chơi Nối Từ.\n` +
+    `- \`/taixiu\`: Bắt đầu chơi Tài Xỉu.\n` +
+    `- \`/slot <cược>\`: Quay máy Slot Machine.\n` +
     `- \`/stop\`: Dừng trò chơi hiện tại.\n\n` +
     `💰 **Kinh Tế & Cá Nhân:**\n` +
     `- \`/reward\`: Nhận quà điểm miễn phí mỗi 4 giờ.\n` +
@@ -195,19 +208,11 @@ async function handleHelp(interaction) {
     `- \`/tygia\`: Xem tỷ giá ngoại tệ.\n` +
     `- \`/webhook-status\`: Xem trạng thái webhook còn sống hay chết.\n\n` +
     `🎒 **Lụm Rác Delta Force:**\n` +
-    `- \`/scavenge start map:<map> time:[5|10|15]\`: Vào map lụm rác (mặc định 5p, balo 20 ô).\n` +
+    `- \`/scavenge start map:<map>\`: Vào map lụm rác (5 phút, balo 20 ô).\n` +
     `- \`/scavenge loot\`: Lụm món đồ tiếp theo.\n` +
     `- \`/scavenge backpack\`: Xem balo.\n` +
-    `- \`/scavenge buyslots số_lượng\`: Mua thêm ô balo (giá tăng dần).\n` +
-    `- \`/scavenge end\`: Kết thúc, đồ vào kho.\n` +
-    `  ⚠️ Chỉ dùng được trong khu vực Scavenger.\n` +
-    `  Map: Zero Dam EZ (Free), Space City Normal (500$), Space City Hard (1000$), Brakkesh (2000$)\n` +
-    `📦 **Kho đồ:**\n` +
-    `- \`/storage view\`: Xem kho đồ Scavenger.\n` +
-    `- \`/storage sell <id | all>\`: Bán 1 món hoặc tất cả.\n` +
-    `- \`/storage upgrade\`: Nâng cấp kho (100→150: 5.000$, 150→200: 15.000$).\n` +
-    `- \`!kho\`, \`!kho sell\`, \`!kho upgrade\`: Kho bản text.\n\n` +
-    `💡 *Mẹo: Các lệnh \`!\` cũ vẫn hoạt động bình thường!*`;
+    `- \`/scavenge end\`: Kết thúc, đồ vào kho.\n\n` +
+    `💡 *Mẹo: Slash commands có gợi ý tự động, gõ \`/\` để bắt đầu!*`;
   await interaction.reply(helpMsg);
 }
 
@@ -220,7 +225,7 @@ async function handleStart(interaction, gameType, { clearTimer }) {
     await startGame(interaction.channelId, 'noitu');
     clearTimer(interaction.channelId);
     await interaction.reply('🎮 Trò chơi Nối Từ đã bắt đầu! Hãy nhập từ đầu tiên.');
-  } else if (gameType === 'over-under') {
+  } else if (gameType === 'over-under' || gameType === 'taixiu') {
     if (!OU_DEDICATED.includes(interaction.channelId)) {
       await interaction.reply({ content: '❌ Trò chơi Tài Xỉu chỉ được phép chơi trong kênh chuyên dụng.', ephemeral: true });
       return;
@@ -235,9 +240,11 @@ async function handleStart(interaction, gameType, { clearTimer }) {
       `3. Hệ thống **không cổ xúy, không tổ chức cờ bạc** trái phép.\n` +
       `4. Người chơi tự chịu trách nhiệm về hành vi. Hãy chơi game văn minh.\n\n` +
       `🎮 **Cách chơi:** Gõ \`/over <số điểm>\` hoặc \`/under <số điểm>\` để đặt cược.\n` +
-      `🖲️ Hoặc bấm nút bên dưới để đặt nhanh (dùng \`/over\` để đặt số tiền khác).`;
+      `🖲️ Hoặc bấm nút bên dưới để đặt nhanh.`;
     const overUnder = require('./games/overUnder');
     await interaction.reply({ content: disclaimer, components: overUnder.getBetButtons() });
+  } else {
+    await interaction.reply({ content: '❌ Trò chơi không hợp lệ.', ephemeral: true });
   }
 }
 
@@ -247,11 +254,43 @@ async function handleStop(interaction, { clearTimer }) {
   await interaction.reply('🏳️ Trò chơi đã kết thúc.');
 }
 
+async function handleSlot(interaction) {
+  const bet = interaction.options.getInteger('bet');
+  if (bet < 100 || bet % 100 !== 0) {
+    await interaction.reply({ content: `❌ Mức cược tối thiểu là 100 ${CURRENCY_NAME} và phải là bội số của 100.`, ephemeral: true });
+    return;
+  }
+  
+  const p = await getUserProfile(interaction.user.id);
+  if (!p || p.points < bet) {
+    await interaction.reply({ content: `❌ Bạn không đủ tiền mặt để chơi. (Hiện có: ${p ? p.points : 0} ${CURRENCY_NAME})`, ephemeral: true });
+    return;
+  }
+
+  const slotGame = require('./games/slot');
+  const { result, win, multiplier } = slotGame.play(bet);
+  
+  await addPoints(interaction.user.id, interaction.user.username, win - bet);
+
+  let msg = `🎰 **Slot Machine** của **${interaction.user.username}**\n`;
+  msg += ` Kết quả: **[ ${result.join(' | ')} ]**\n\n`;
+  
+  if (multiplier > 0) {
+    msg += `🎉 **Chúc mừng!** Bạn trúng **x${multiplier}** và nhận được \`${win.toLocaleString()} ${CURRENCY_NAME}\`!`;
+  } else {
+    msg += `😞 **Rất tiếc!** Bạn đã mất \`${bet.toLocaleString()} ${CURRENCY_NAME}\`. Chúc may mắn lần sau!`;
+  }
+  
+  msg += `\n💰 Số dư hiện tại: \`${(p.points + win - bet).toLocaleString()} ${CURRENCY_NAME}\``;
+  
+  await interaction.reply(msg);
+}
+
 async function handleLeaderboard(interaction) {
   const top = await getTopPlayers();
-  let reply = `🏆 Bảng xếp hạng (${CURRENCY_NAME}):\n`;
+  let reply = `🏆 **BẢNG XẾP HẠNG ĐẠI GIA**\n\n`;
   top.forEach((p, i) => {
-    reply += `${i + 1}. ${p.username}: ${p.points} ${CURRENCY_NAME} ${CURRENCY_ICON}\n`;
+    reply += `${i + 1}. **${p.username}**: \`${p.points.toLocaleString()}\` ${CURRENCY_NAME}\n`;
   });
   await interaction.reply(reply);
 }
@@ -290,9 +329,9 @@ async function handleProfile(interaction) {
     return;
   }
   const reply = `👤 **Hồ sơ của ${interaction.user.username}**\n` +
-    `💵 Tiền mặt: \`${p.points} ${CURRENCY_NAME}\`\n` +
-    `🏦 Ngân hàng: \`${p.bank} ${CURRENCY_NAME}\`\n` +
-    `💸 Đang nợ: \`${p.loan} ${CURRENCY_NAME}\`\n` +
+    `💵 Tiền mặt: \`${p.points.toLocaleString()} ${CURRENCY_NAME}\`\n` +
+    `🏦 Ngân hàng: \`${p.bank.toLocaleString()} ${CURRENCY_NAME}\`\n` +
+    `💸 Đang nợ: \`${p.loan.toLocaleString()} ${CURRENCY_NAME}\`\n` +
     `--- ${CURRENCY_ICON}`;
   await interaction.reply(reply);
 }
@@ -322,7 +361,7 @@ async function handleDeposit(interaction) {
     return;
   }
   await deposit(interaction.user.id, amount);
-  await interaction.reply(`✅ Đã gửi \`${amount} ${CURRENCY_NAME}\` vào ngân hàng.`);
+  await interaction.reply(`✅ Đã gửi \`${amount.toLocaleString()} ${CURRENCY_NAME}\` vào ngân hàng.`);
 }
 
 async function handleWithdraw(interaction) {
@@ -341,7 +380,7 @@ async function handleWithdraw(interaction) {
     return;
   }
   await withdraw(interaction.user.id, amount);
-  await interaction.reply(`✅ Đã rút \`${amount} ${CURRENCY_NAME}\` về tiền mặt.`);
+  await interaction.reply(`✅ Đã rút \`${amount.toLocaleString()} ${CURRENCY_NAME}\` về tiền mặt.`);
 }
 
 async function handleLoan(interaction) {
@@ -354,7 +393,7 @@ async function handleLoan(interaction) {
   const LOAN_COOLDOWN = 3600000;
 
   if (amount < 100 || amount % 100 !== 0 || amount > LOAN_LIMIT) {
-    await interaction.reply({ content: `❌ Bạn có thể vay từ 100 đến \`${LOAN_LIMIT} ${CURRENCY_NAME}\` (bội số của 100).`, ephemeral: true });
+    await interaction.reply({ content: `❌ Bạn có thể vay từ 100 đến \`${LOAN_LIMIT.toLocaleString()} ${CURRENCY_NAME}\` (bội số của 100).`, ephemeral: true });
     return;
   }
 
@@ -363,7 +402,7 @@ async function handleLoan(interaction) {
 
   if (p) {
     if (p.loan > 0) {
-      await interaction.reply({ content: `❌ Bạn vẫn còn nợ \`${p.loan} ${CURRENCY_NAME}\`. Hãy trả hết trước khi vay thêm.`, ephemeral: true });
+      await interaction.reply({ content: `❌ Bạn vẫn còn nợ \`${p.loan.toLocaleString()} ${CURRENCY_NAME}\`. Hãy trả hết trước khi vay thêm.`, ephemeral: true });
       return;
     }
     if (now - p.last_loan_at < LOAN_COOLDOWN) {
@@ -374,7 +413,7 @@ async function handleLoan(interaction) {
   }
 
   await takeLoan(interaction.user.id, interaction.user.username, amount);
-  await interaction.reply(`💸 Bạn đã vay thành công \`${amount} ${CURRENCY_NAME}\`. Nhớ trả nợ sớm!`);
+  await interaction.reply(`💸 Bạn đã vay thành công \`${amount.toLocaleString()} ${CURRENCY_NAME}\`. Nhớ trả nợ sớm!`);
 }
 
 async function handlePayback(interaction) {
@@ -400,7 +439,7 @@ async function handlePayback(interaction) {
   }
   const actualPay = Math.min(amount, p.loan);
   await payback(interaction.user.id, actualPay);
-  await interaction.reply(`✅ Bạn đã trả \`${actualPay} ${CURRENCY_NAME}\`. Nợ còn lại: \`${p.loan - actualPay} ${CURRENCY_NAME}\`.`);
+  await interaction.reply(`✅ Bạn đã trả \`${actualPay.toLocaleString()} ${CURRENCY_NAME}\`. Nợ còn lại: \`${(p.loan - actualPay).toLocaleString()} ${CURRENCY_NAME}\`.`);
 }
 
 async function handleNews(interaction) {
@@ -441,8 +480,6 @@ async function handleTygia(interaction) {
   await interaction.editReply(`${content}${change}\n⏰ *Cập nhật: ${updatedAt.toLocaleString('vi-VN')}*`);
 }
 
-const SCAVENGE_CATEGORY = '1513114420824244296';
-
 async function handleScavenge(interaction) {
   if (interaction.channel?.parentId !== SCAVENGE_CATEGORY) {
     await interaction.reply({ content: '❌ Lệnh này chỉ sử dụng được trong khu vực Scavenger.', ephemeral: true });
@@ -462,10 +499,9 @@ async function handleScavenge(interaction) {
       return;
     }
 
-    const { getUserProfile, addPoints } = require('./database');
     const p = await getUserProfile(interaction.user.id);
     if (!p || p.points < map.entryFee) {
-      await interaction.editReply({ content: `❌ Bạn cần \`${map.entryFee} ${CURRENCY_NAME}\` để vào ${map.name}. Bạn có \`${p?.points || 0}\`.` });
+      await interaction.editReply({ content: `❌ Bạn cần \`${map.entryFee.toLocaleString()} ${CURRENCY_NAME}\` để vào ${map.name}. Bạn có \`${(p?.points || 0).toLocaleString()}\`.` });
       return;
     }
 
@@ -508,7 +544,7 @@ async function handleScavenge(interaction) {
     sessionMsg = `${map.emoji} **${map.name}** — Bắt đầu lụm rác!\n` +
       `⏱️ Thời gian: ${durLabel}\n` +
       `🎒 Balo: 0/${result.session.maxSlots} ô\n` +
-      `💸 Phí vào: \`${map.entryFee} ${CURRENCY_NAME}\`\n` +
+      `💸 Phí vào: \`${map.entryFee.toLocaleString()} ${CURRENCY_NAME}\`\n` +
       `${lootMsg}` +
       `_Bot đang auto-loot... Dùng \`/scavenge backpack\` để xem balo._`;
     await interaction.editReply({ content: sessionMsg });
@@ -549,10 +585,9 @@ async function handleScavenge(interaction) {
       await interaction.editReply({ content: `❌ ${buyInfo.error}` });
       return;
     }
-    const { getUserProfile, addPoints } = require('./database');
     const p = await getUserProfile(interaction.user.id);
     if (!p || p.points < buyInfo.cost) {
-      await interaction.editReply({ content: `❌ Cần \`${buyInfo.cost.toLocaleString()} ${CURRENCY_NAME}\` để mua thêm ${numSlots} ô (${buyInfo.currentMax} → ${buyInfo.newMax}). Bạn có \`${p?.points || 0}\`.` });
+      await interaction.editReply({ content: `❌ Cần \`${buyInfo.cost.toLocaleString()} ${CURRENCY_NAME}\` để mua thêm ${numSlots} ô (${buyInfo.currentMax} → ${buyInfo.newMax}). Bạn có \`${(p?.points || 0).toLocaleString()}\`.` });
       return;
     }
     await addPoints(interaction.user.id, interaction.user.username, -buyInfo.cost);
@@ -625,13 +660,13 @@ async function handleStorage(interaction) {
     if (info.error) { await interaction.reply({ content: `❌ ${info.error}`, ephemeral: true }); return; }
     const p = await getUserProfile(interaction.user.id);
     if (!p || p.points < info.cost) {
-      await interaction.reply({ content: `❌ Cần \`${info.cost} ${CURRENCY_NAME}\` để nâng cấp (${info.capacity} → ${info.nextCapacity} ô). Bạn có \`${p?.points || 0}\`.`, ephemeral: true });
+      await interaction.reply({ content: `❌ Cần \`${info.cost.toLocaleString()} ${CURRENCY_NAME}\` để nâng cấp (${info.capacity} → ${info.nextCapacity} ô). Bạn có \`${(p?.points || 0).toLocaleString()}\`.`, ephemeral: true });
       return;
     }
     await addPoints(interaction.user.id, interaction.user.username, -info.cost);
     const result = await applyUpgradeStorage(interaction.user.id);
     if (result.error) { await interaction.reply({ content: `❌ ${result.error}`, ephemeral: true }); return; }
-    await interaction.reply({ content: `✅ Đã nâng cấp kho lên **${result.capacity} ô** (${info.cost} ${CURRENCY_NAME}).`, ephemeral: true });
+    await interaction.reply({ content: `✅ Đã nâng cấp kho lên **${result.capacity} ô** (${info.cost.toLocaleString()} ${CURRENCY_NAME}).`, ephemeral: true });
     return;
   }
 
@@ -752,6 +787,19 @@ async function handleWiki(interaction) {
 }
 
 async function handleDefine(interaction) {
+  await interaction.deferReply();
+  const word = interaction.options.getString('word');
+  const result = await lookup.define(word);
+  await interaction.editReply(result);
+}
+
+async function handleSearch(interaction) {
+  await interaction.deferReply();
+  const query = interaction.options.getString('query');
+  const result = await lookup.search(query);
+  await interaction.editReply(result);
+}
+nction handleDefine(interaction) {
   await interaction.deferReply();
   const word = interaction.options.getString('word');
   const result = await lookup.define(word);

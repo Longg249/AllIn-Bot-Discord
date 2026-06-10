@@ -166,73 +166,15 @@ client.once(Events.ClientReady, async c => {
 
 const handleSlashCommand = require('./src/slash');
 
-// Trình quản lý trạng thái trò chơi theo kênh
-const activeGames = new Map();
-const timestamp = () => new Date().toLocaleTimeString('vi-VN');
-
 client.on(Events.InteractionCreate, async interaction => {
-  if (!interaction.isChatInputCommand()) return;
-
-  const { commandName, options, channelId } = interaction;
-
-  if (commandName === 'game') {
-    const subcommand = options.getSubcommand();
-    
-    if (subcommand === 'start') {
-      if (activeGames.has(channelId)) {
-        await interaction.reply({ content: '❌ Kênh này đang có trò chơi hoạt động. Dùng `/game stop` để dừng trước.', ephemeral: true });
-        return;
-      }
-      const gameName = options.getString('name');
-      activeGames.set(channelId, { name: gameName, state: {} });
-      
-      let replyMsg = `🎮 Đã bắt đầu trò chơi: **${gameName}**. Chúc bạn may mắn!`;
-      if (gameName === 'slot') {
-        replyMsg += `\n\n⚠️ **TUYÊN BỐ MIỄN TRỪ TRÁCH NHIỆM:**\nTrò chơi chỉ mang tính chất giải trí, tiền trong game là tiền ảo không có giá trị quy đổi.`;
-      }
-      
-      await interaction.reply(`${replyMsg}\n⏰ *${timestamp()}*`);
-    } else if (subcommand === 'play') {
-      const game = activeGames.get(channelId);
-      if (!game) {
-        await interaction.reply({ content: '❌ Không có trò chơi nào đang hoạt động trong kênh này.', ephemeral: true });
-        return;
-      }
-      
-      let msg = '';
-      if (game.name === 'slot') {
-        const bet = parseInt(options.getString('action'));
-        if (isNaN(bet) || bet < 100) {
-          await interaction.reply({ content: '❌ Vui lòng nhập số tiền cược hợp lệ (tối thiểu 100).', ephemeral: true });
-          return;
-        }
-        
-        const slotGame = require('./src/games/slot');
-        const { result, win, multiplier } = slotGame.play(bet);
-        
-        msg = `🎰 **Slot Machine**\nKết quả: ${result.join(' | ')}\n`;
-        if (multiplier > 0) {
-          msg += `🎉 Chúc mừng! Bạn thắng \`${win}đ\` (x${multiplier})`;
-        } else {
-          msg += `😞 Rất tiếc, bạn không thắng lần này.`;
-        }
-      } else {
-        msg = `Bạn đang chơi **${game.name}**. Hành động: ${options.getString('action')}`;
-      }
-      
-      await interaction.reply({ content: `${msg}\n⏰ *${timestamp()}*`, ephemeral: true });
-    } else if (subcommand === 'stop') {
-      if (!activeGames.has(channelId)) {
-        await interaction.reply({ content: '❌ Không có trò chơi nào để dừng.', ephemeral: true });
-        return;
-      }
-      activeGames.delete(channelId);
-      await interaction.reply(`🏳️ Trò chơi đã dừng.\n⏰ *${timestamp()}*`);
+  if (interaction.isChatInputCommand()) {
+    await handleSlashCommand(interaction, { turnTimers, clearTimer, setTimer });
+  } else if (interaction.isButton()) {
+    if (interaction.customId.startsWith('over-under_')) {
+      const data = interaction.customId.replace('over-under_', '');
+      await overUnderGame.handleInteraction(interaction, data);
     }
-    return;
   }
-  
-  // Xử lý các lệnh cũ...
 });
 
 client.on(Events.MessageCreate, async message => {
