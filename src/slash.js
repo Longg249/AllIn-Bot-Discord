@@ -799,16 +799,3 @@ async function handleSearch(interaction) {
   const result = await lookup.search(query);
   await interaction.editReply(result);
 }
-nction handleDefine(interaction) {
-  await interaction.deferReply();
-  const word = interaction.options.getString('word');
-  const result = await lookup.define(word);
-  await interaction.editReply(result);
-}
-
-async function handleSearch(interaction) {
-  await interaction.deferReply();
-  const query = interaction.options.getString('query');
-  const result = await lookup.search(query);
-  await interaction.editReply(result);
-}
