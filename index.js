@@ -41,7 +41,20 @@ const setTimer = (channelId) => {
 };
 
 client.once(Events.ClientReady, async c => {
-  console.log(`✅ Logged in as ${c.user.tag}`);
+  // --- Terminal Monitor Integration ---
+  const NEON_PINK = '\x1b[38;2;255;0;255m';
+  const CYAN = '\x1b[38;2;0;255;255m';
+  const NEON_GREEN = '\x1b[38;2;57;255;20m';
+  const NC = '\x1b[0m';
+
+  console.clear();
+  console.log(`${NEON_PINK}╔════════════════════════════════════════════════════════════╗${NC}`);
+  console.log(`${NEON_PINK}║${NC}        ${CYAN}🚀 ALLIN BOT SERVER - STARTUP SUCCESSFUL          ${NEON_PINK}║${NC}`);
+  console.log(`${NEON_PINK}╚════════════════════════════════════════════════════════════╝${NC}`);
+  console.log(`🕒 ${CYAN}Time:${NC} ${new Date().toLocaleString('vi-VN')}`);
+  console.log(`🤖 ${CYAN}Bot Account:${NC} ${NEON_GREEN}${c.user.tag}${NC}`);
+  console.log(`🛡️ ${CYAN}Status:${NC} ${NEON_GREEN}ONLINE & READY${NC}`);
+  console.log(`${NEON_PINK}──────────────────────────────────────────────────────────────${NC}`);
 
   // Register slash commands on startup
   const { deployCommands } = require('./deploy-commands');
@@ -164,15 +177,18 @@ client.once(Events.ClientReady, async c => {
   console.log('🌐 Webhook server ready — gửi POST đến /webhook/news và /webhook/finance');
 });
 
-const handleSlashCommand = require('./src/slash');
+const { slashHandler, handleSlotInteraction } = require('./src/slash');
 
 client.on(Events.InteractionCreate, async interaction => {
   if (interaction.isChatInputCommand()) {
-    await handleSlashCommand(interaction, { turnTimers, clearTimer, setTimer });
+    await slashHandler(interaction, { turnTimers, clearTimer, setTimer });
   } else if (interaction.isButton()) {
     if (interaction.customId.startsWith('over-under_')) {
       const data = interaction.customId.replace('over-under_', '');
       await overUnderGame.handleInteraction(interaction, data);
+    } else if (interaction.customId.startsWith('slot_')) {
+      const data = interaction.customId.replace('slot_', '');
+      await handleSlotInteraction(interaction, data);
     }
   }
 });
