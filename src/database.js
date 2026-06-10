@@ -1,75 +1,38 @@
-const { exec } = require('child_process');
+const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
 const DB_PATH = path.join(__dirname, '..', 'game.db');
+const db = new sqlite3.Database(DB_PATH);
 
 // Constant for currency
 const CURRENCY_NAME = 'Tekniq Alloy';
 const CURRENCY_ICON = 'https://assetsdelivery.eldorado.gg/v7/_assets_/predefined-offers/v8/233/delta-force-ta.png';
 const STARTING_BALANCE = 10000;
 
-// Helper to escape values for sqlite3 CLI
-const escapeValue = (val) => {
-  if (typeof val === 'string') return `'${val.replace(/'/g, "''")}'`;
-  return val;
-};
-
-// Helper to replace '?' placeholders with escaped values
-const formatSql = (sql, params) => {
-  let i = 0;
-  return sql.replace(/\?/g, () => escapeValue(params[i++]));
-};
-
-// Execute SQL command using sqlite3 CLI
-const execSql = (sql, params = []) => {
-  return new Promise((resolve, reject) => {
-    const formattedSql = formatSql(sql, params);
-    const cmd = `sqlite3 ${DB_PATH} "${formattedSql}"`;
-    exec(cmd, (err, stdout, stderr) => {
-      if (err) reject(err);
-      else resolve(stdout.trim());
-    });
-  });
-};
-
 // Helper to run queries as Promises
-const run = async (sql, params = []) => {
-  await execSql(sql, params);
-  return { changes: 1 }; // Simplified
-};
-
-const get = async (sql, params = []) => {
-  // Use -json or CSV for structured output
+const run = (sql, params = []) => {
   return new Promise((resolve, reject) => {
-    const formattedSql = formatSql(sql, params);
-    const cmd = `sqlite3 -json ${DB_PATH} "${formattedSql}"`;
-    exec(cmd, (err, stdout, stderr) => {
+    db.run(sql, params, function(err) {
       if (err) reject(err);
-      else {
-        try {
-          const rows = JSON.parse(stdout);
-          resolve(rows && rows.length > 0 ? rows[0] : null);
-        } catch (e) {
-          resolve(null);
-        }
-      }
+      else resolve({ changes: this.changes, lastID: this.lastID });
     });
   });
 };
 
-const all = async (sql, params = []) => {
+const get = (sql, params = []) => {
   return new Promise((resolve, reject) => {
-    const formattedSql = formatSql(sql, params);
-    const cmd = `sqlite3 -json ${DB_PATH} "${formattedSql}"`;
-    exec(cmd, (err, stdout, stderr) => {
+    db.get(sql, params, (err, row) => {
       if (err) reject(err);
-      else {
-        try {
-          resolve(JSON.parse(stdout) || []);
-        } catch (e) {
-          resolve([]);
-        }
-      }
+      else resolve(row);
+    });
+  });
+};
+
+const all = (sql, params = []) => {
+  return new Promise((resolve, reject) => {
+    db.all(sql, params, (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows || []);
     });
   });
 };
