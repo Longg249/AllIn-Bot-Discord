@@ -96,7 +96,7 @@ async function pushAll() {
   // 1. Xử lý Tin tức
   const news = await fetchNews();
   if (news.length > 0) {
-    const textNews = news.map(item => `• [${item.title}](${item.link})`).join('\n');
+    const textNews = news.map(item => `• [${item.title}](<${item.link}>)`).join('\n');
     await push('/webhook/news', { 
       channel: NEWS_CHANNEL, 
       content: `📰 **TIN TỨC MỚI CẬP NHẬT**\n${textNews}` 
