@@ -12,7 +12,9 @@ const BANK_CHANNEL = '1513092507804635136';
 const OU_DEDICATED = ['1513076471797776435', '1513076573954117632', '1513076691839488030'];
 const FINANCE_CHANNEL = '1513082616444616754';
 
-module.exports = async (interaction, { turnTimers, clearTimer, setTimer }) => {
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+
+const slashHandler = async (interaction, { turnTimers, clearTimer, setTimer }) => {
   const { commandName, options, channelId, user } = interaction;
 
   try {
@@ -254,6 +256,32 @@ async function handleStop(interaction, { clearTimer }) {
   await interaction.reply('🏳️ Trò chơi đã kết thúc.');
 }
 
+function getSlotResponse(username, userId, result, win, multiplier, title, color, bet, currentPoints) {
+  const embed = new EmbedBuilder()
+    .setTitle(title)
+    .setColor(color)
+    .setDescription(
+      `👤 Người chơi: **${username}**\n` +
+      `🎰 Kết quả: **[ ${result.join(' | ')} ]**\n\n` +
+      (multiplier > 0 
+        ? `🎉 Bạn trúng **x${multiplier}** và nhận được \`${win.toLocaleString()} ${CURRENCY_NAME}\`!` 
+        : `😞 Bạn đã mất \`${bet.toLocaleString()} ${CURRENCY_NAME}\`.`) +
+      `\n💰 Số dư hiện tại: \`${currentPoints.toLocaleString()} ${CURRENCY_NAME}\``
+    )
+    .setThumbnail(CURRENCY_ICON)
+    .setTimestamp();
+
+  const row = new ActionRowBuilder()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId(`slot_spin_${bet}`)
+        .setLabel('Quay tiếp 🎰')
+        .setStyle(ButtonStyle.Primary)
+    );
+
+  return { embeds: [embed], components: [row] };
+}
+
 async function handleSlot(interaction) {
   const bet = interaction.options.getInteger('bet');
   if (bet < 100 || bet % 100 !== 0) {
@@ -268,22 +296,35 @@ async function handleSlot(interaction) {
   }
 
   const slotGame = require('./games/slot');
-  const { result, win, multiplier } = slotGame.play(bet);
+  const { result, win, multiplier, title, color } = slotGame.play(bet);
   
   await addPoints(interaction.user.id, interaction.user.username, win - bet);
+  const newPoints = p.points + win - bet;
 
-  let msg = `🎰 **Slot Machine** của **${interaction.user.username}**\n`;
-  msg += ` Kết quả: **[ ${result.join(' | ')} ]**\n\n`;
-  
-  if (multiplier > 0) {
-    msg += `🎉 **Chúc mừng!** Bạn trúng **x${multiplier}** và nhận được \`${win.toLocaleString()} ${CURRENCY_NAME}\`!`;
-  } else {
-    msg += `😞 **Rất tiếc!** Bạn đã mất \`${bet.toLocaleString()} ${CURRENCY_NAME}\`. Chúc may mắn lần sau!`;
+  const response = getSlotResponse(interaction.user.username, interaction.user.id, result, win, multiplier, title, color, bet, newPoints);
+  await interaction.reply(response);
+}
+
+async function handleSlotInteraction(interaction, data) {
+  if (data.startsWith('spin_')) {
+    const bet = parseInt(data.replace('spin_', ''));
+    if (isNaN(bet)) return;
+
+    const p = await getUserProfile(interaction.user.id);
+    if (!p || p.points < bet) {
+      await interaction.reply({ content: `❌ Bạn không đủ tiền mặt để tiếp tục quay mức cược này. (Hiện có: ${p ? p.points : 0} ${CURRENCY_NAME})`, ephemeral: true });
+      return;
+    }
+
+    const slotGame = require('./games/slot');
+    const { result, win, multiplier, title, color } = slotGame.play(bet);
+    
+    await addPoints(interaction.user.id, interaction.user.username, win - bet);
+    const newPoints = p.points + win - bet;
+
+    const response = getSlotResponse(interaction.user.username, interaction.user.id, result, win, multiplier, title, color, bet, newPoints);
+    await interaction.update(response);
   }
-  
-  msg += `\n💰 Số dư hiện tại: \`${(p.points + win - bet).toLocaleString()} ${CURRENCY_NAME}\``;
-  
-  await interaction.reply(msg);
 }
 
 async function handleLeaderboard(interaction) {
@@ -799,3 +840,8 @@ async function handleSearch(interaction) {
   const result = await lookup.search(query);
   await interaction.editReply(result);
 }
+
+module.exports = {
+  slashHandler,
+  handleSlotInteraction
+};
