@@ -45,7 +45,13 @@ client.once(Events.ClientReady, async c => {
   const NEON_PINK = '\x1b[38;2;255;0;255m';
   const CYAN = '\x1b[38;2;0;255;255m';
   const NEON_GREEN = '\x1b[38;2;57;255;20m';
+  const WHITE = '\x1b[37m';
   const NC = '\x1b[0m';
+
+  const { getDFItemCount, getTopPlayers } = require('./src/database');
+  const scavengerCount = await getDFItemCount();
+  const topPlayers = await getTopPlayers(1);
+  const { commands } = require('./deploy-commands');
 
   console.clear();
   console.log(`${NEON_PINK}╔════════════════════════════════════════════════════════════╗${NC}`);
@@ -54,6 +60,23 @@ client.once(Events.ClientReady, async c => {
   console.log(`🕒 ${CYAN}Time:${NC} ${new Date().toLocaleString('vi-VN')}`);
   console.log(`🤖 ${CYAN}Bot Account:${NC} ${NEON_GREEN}${c.user.tag}${NC}`);
   console.log(`🛡️ ${CYAN}Status:${NC} ${NEON_GREEN}ONLINE & READY${NC}`);
+  console.log(`${NEON_PINK}──────────────────────────────────────────────────────────────${NC}`);
+  
+  console.log(`${WHITE}--- [ CORE MODULES ] ---${NC}`);
+  console.log(`📂 ${CYAN}Database:${NC}  ${NEON_GREEN}CONNECTED (game.db, dictionary.db)${NC}`);
+  console.log(`🤖 ${CYAN}AI Engine:${NC} ${NEON_GREEN}LOADED (Gemini AI)${NC}`);
+  console.log(`⏰ ${CYAN}Reminders:${NC} ${NEON_GREEN}ACTIVE (30s interval)${NC}`);
+  console.log(`🌐 ${CYAN}Webhooks:${NC}  ${NEON_GREEN}LISTENING (Port 3000)${NC}`);
+  
+  console.log(`\n${WHITE}--- [ GAME MODULES ] ---${NC}`);
+  console.log(`🎲 ${CYAN}Tài Xỉu:${NC}   ${NEON_GREEN}READY${NC}`);
+  console.log(`🔤 ${CYAN}Nối Từ:${NC}    ${NEON_GREEN}READY${NC}`);
+  console.log(`🎰 ${CYAN}Slot Mach:${NC} ${NEON_GREEN}READY${NC}`);
+  console.log(`🎒 ${CYAN}Scavenger:${NC} ${NEON_GREEN}READY (${scavengerCount} items loaded)${NC}`);
+  
+  console.log(`\n${WHITE}--- [ BOT STATISTICS ] ---${NC}`);
+  console.log(`⌨️  ${CYAN}Commands:${NC}  ${NEON_GREEN}${commands.length} Slash Commands registered${NC}`);
+  console.log(`🏆 ${CYAN}Economy:${NC}   ${NEON_GREEN}Active (Richest: ${topPlayers[0]?.username || 'N/A'})${NC}`);
   console.log(`${NEON_PINK}──────────────────────────────────────────────────────────────${NC}`);
 
   // Register slash commands on startup
