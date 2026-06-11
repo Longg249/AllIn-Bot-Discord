@@ -1,15 +1,27 @@
-// --- Startup: Auto Update & Environment Check ---
+// --- Startup: Git Repair, Auto Update & Environment Check ---
 const { execSync } = require('child_process');
+const fs = require('fs');
 
-// 1. Check for updates
-try {
-  console.log('🔄 [System] Checking for updates...');
-  execSync('git pull origin main', { stdio: 'inherit' });
-} catch (e) {
-  console.error('⚠️ [System] Auto-update skipped (check git connectivity).');
+// 1. Auto-repair Git if .git folder is missing
+if (!fs.existsSync('.git')) {
+  try {
+    console.log('🔧 [System] Initializing Git repository...');
+    execSync('git init && git remote add origin https://github.com/Longg249/AllIn-Bot-Discord.git && git fetch origin main && git reset --hard origin/main', { stdio: 'inherit' });
+    console.log('✅ [System] Git initialized successfully.');
+  } catch (e) {
+    console.error('❌ [System] Git initialization failed:', e.message);
+  }
+} else {
+  // 2. If Git exists, pull for updates
+  try {
+    console.log('🔄 [System] Checking for updates...');
+    execSync('git pull origin main', { stdio: 'inherit' });
+  } catch (e) {
+    console.error('⚠️ [System] Auto-update skipped (check git connectivity).');
+  }
 }
 
-// 2. Check for sqlite3 compatibility
+// 3. Check for sqlite3 compatibility
 try {
   require('sqlite3');
   console.log('✅ [System] SQLite3 is compatible.');
@@ -26,7 +38,7 @@ try {
     process.exit(1);
   }
 }
-// -------------------------------------------------
+// -----------------------------------------------------------
 
 const { Client, GatewayIntentBits, Events } = require('discord.js');
 const fs = require('fs');
