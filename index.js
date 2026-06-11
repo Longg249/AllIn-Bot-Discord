@@ -1,3 +1,12 @@
+// --- Auto Update from GitHub ---
+const { execSync } = require('child_process');
+try {
+  console.log('🔄 [System] Checking for updates...');
+  execSync('git pull origin main', { stdio: 'inherit' });
+} catch (e) {
+  console.error('⚠️ [System] Auto-update failed (check git credentials or connectivity).');
+}
+
 // --- Environment Compatibility Check ---
 const { execSync } = require('child_process');
 try {
