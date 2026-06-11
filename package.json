@@ -4,7 +4,7 @@
   "description": "Discord Word Chain Bot with Vietnamese Dictionary API",
   "main": "index.js",
   "scripts": {
-    "start": "node check-platform.js && node index.js",
+    "start": "node check-env.js && node index.js",
     "test": "node test-logic.js"
   },
   "keywords": [],
