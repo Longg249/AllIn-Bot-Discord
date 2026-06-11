@@ -73,6 +73,26 @@ client.once(Events.ClientReady, async c => {
   console.log(`⏰ ${CYAN}Reminders:${NC} ${NEON_GREEN}ACTIVE (30s interval)${NC}`);
   console.log(`🌐 ${CYAN}Webhooks:${NC}  ${NEON_GREEN}LISTENING (Port 3000)${NC}`);
   
+  // Trigger manual webhook push on startup
+  console.log(`🔄 ${CYAN}Webhook:${NC}  ${NEON_GREEN}Triggering manual update...${NC}`);
+  const { exec } = require('child_process');
+  exec('node webhook-pusher.js --once', (error, stdout, stderr) => {
+    if (error) {
+      console.error(`❌ Manual webhook push failed: ${error.message}`);
+      return;
+    }
+    console.log(`✅ Manual webhook push completed.`);
+  });
+  
+  console.log(`\n${WHITE}--- [ WEBHOOK STATUS ] ---${NC}`);
+  const status = {
+      News: dataStore.getNews().updatedAt ? '✅' : '❌',
+      Crypto: dataStore.getCrypto().updatedAt ? '✅' : '❌',
+      Exchange: dataStore.getExchange().updatedAt ? '✅' : '❌',
+      Fuel: dataStore.getFuel().updatedAt ? '✅' : '❌',
+  };
+  Object.entries(status).forEach(([k, v]) => console.log(`${CYAN}${k}:${NC} ${v}`));
+  
   console.log(`\n${WHITE}--- [ GAME MODULES ] ---${NC}`);
   console.log(`🎲 ${CYAN}Tài Xỉu:${NC}   ${NEON_GREEN}READY${NC}`);
   console.log(`🔤 ${CYAN}Nối Từ:${NC}    ${NEON_GREEN}READY${NC}`);
