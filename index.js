@@ -87,7 +87,7 @@ client.once(Events.ClientReady, async c => {
   const topPlayersResult = await getTopPlayers(1);
   const { commands } = require('./deploy-commands');
 
-  console.clear();
+  // console.clear();
   console.log(`${NEON_PINK}╔════════════════════════════════════════════════════════════╗${NC}`);
   console.log(`${NEON_PINK}║${NC}        ${CYAN}🚀 ALLIN BOT SERVER - STARTUP SUCCESSFUL          ${NEON_PINK}║${NC}`);
   console.log(`${NEON_PINK}╚════════════════════════════════════════════════════════════╝${NC}`);
