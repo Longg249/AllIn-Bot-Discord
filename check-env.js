@@ -21,7 +21,13 @@ try {
         }
         console.log('✅ [System] Repair successful!');
     } catch (err) {
-        console.error('❌ [System] Critical: Automatic repair failed. Please install build-essential/python.');
+        console.error('❌ [System] Critical: Automatic repair failed.');
+        if (process.env.TERMUX_VERSION) {
+            console.error('👉 Vui lòng chạy lệnh này trong Termux: pkg install -y build-essential binutils python clang make');
+
+        } else {
+            console.error('👉 Please install build-essential/python.');
+        }
         process.exit(1);
     }
 }

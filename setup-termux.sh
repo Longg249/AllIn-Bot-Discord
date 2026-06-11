@@ -10,7 +10,7 @@ pkg update -y && pkg upgrade -y
 
 # 2. Install dependencies
 echo "[2/4] Đang cài đặt Node.js và công cụ build..."
-pkg install -y nodejs python make gcc-11 build-essential sqlite
+pkg install -y nodejs python binutils build-essential clang make sqlite
 
 # 3. Install NPM packages
 echo "[3/4] Đang cài đặt thư viện Node.js..."

@@ -34,7 +34,13 @@ try {
     execSync(cmd, { stdio: 'inherit' });
     console.log('✅ [System] Repair successful!');
   } catch (err) {
-    console.error('❌ [System] Repair failed. Please install build tools.');
+    console.error('❌ [System] Repair failed.');
+    if (process.env.TERMUX_VERSION) {
+      console.error('👉 Vui lòng chạy lệnh này trong Termux: pkg install -y build-essential binutils python clang make');
+
+    } else {
+      console.error('👉 Please install build tools (build-essential, python, etc.)');
+    }
     process.exit(1);
   }
 }
