@@ -41,7 +41,6 @@ try {
 // -----------------------------------------------------------
 
 const { Client, GatewayIntentBits, Events } = require('discord.js');
-const fs = require('fs');
 const { 
   getGameState, startGame, stopGame, getUserProfile, getTopPlayers, 
   deposit, withdraw, takeLoan, payback, claimReward, 
