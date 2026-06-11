@@ -12,6 +12,7 @@ try {
 // 2. Check for sqlite3 compatibility
 try {
   require('sqlite3');
+  console.log('✅ [System] SQLite3 is compatible.');
 } catch (e) {
   console.log('⚠️ [System] SQLite3 mismatch detected. Repairing...');
   try {
