@@ -1,14 +1,15 @@
-// --- Auto Update from GitHub ---
+// --- Startup: Auto Update & Environment Check ---
 const { execSync } = require('child_process');
+
+// 1. Check for updates
 try {
   console.log('🔄 [System] Checking for updates...');
   execSync('git pull origin main', { stdio: 'inherit' });
 } catch (e) {
-  console.error('⚠️ [System] Auto-update failed (check git credentials or connectivity).');
+  console.error('⚠️ [System] Auto-update skipped (check git connectivity).');
 }
 
-// --- Environment Compatibility Check ---
-const { execSync } = require('child_process');
+// 2. Check for sqlite3 compatibility
 try {
   require('sqlite3');
 } catch (e) {
@@ -24,7 +25,7 @@ try {
     process.exit(1);
   }
 }
-// ----------------------------------------
+// -------------------------------------------------
 
 const { Client, GatewayIntentBits, Events } = require('discord.js');
 const fs = require('fs');
