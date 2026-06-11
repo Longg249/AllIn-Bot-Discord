@@ -51,5 +51,12 @@ fi
 # 5. Run the bot
 echo "[+] Starting the bot..."
 echo "----------------------------------------------------"
+# Check if sqlite3 works, if not, try to fix it
+node -e "try { require('sqlite3') } catch (e) { process.exit(1) }" 2>/dev/null
+if [ $? -ne 0 ]; then
+    echo "[!] Detected sqlite3 binary incompatibility. Attempting automatic fix..."
+    npm install sqlite3@5.1.7 --no-save
+fi
+
 node index.js
 echo "----------------------------------------------------"

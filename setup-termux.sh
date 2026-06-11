@@ -16,6 +16,7 @@ pkg install -y nodejs python make gcc-11 build-essential sqlite
 echo "[3/4] Đang cài đặt thư viện Node.js..."
 # Xóa node_modules cũ nếu có để tránh xung đột kiến trúc
 rm -rf node_modules package-lock.json
+npm install --build-from-source sqlite3
 npm install
 
 # 4. Rebuild sqlite3 (Quan trọng cho Termux)
