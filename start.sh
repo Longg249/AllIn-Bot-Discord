@@ -51,5 +51,5 @@ fi
 # 5. Run the bot
 echo "[+] Starting the bot..."
 echo "----------------------------------------------------"
-node check-env.js && node index.js
+node index.js
 echo "----------------------------------------------------"

@@ -1,3 +1,22 @@
+// --- Environment Compatibility Check ---
+const { execSync } = require('child_process');
+try {
+  require('sqlite3');
+} catch (e) {
+  console.log('⚠️ [System] SQLite3 mismatch detected. Repairing...');
+  try {
+    const cmd = process.env.TERMUX_VERSION 
+      ? 'npm install sqlite3@5.1.7 --build-from-source --no-save'
+      : 'npm install sqlite3@5.1.7 --no-save';
+    execSync(cmd, { stdio: 'inherit' });
+    console.log('✅ [System] Repair successful!');
+  } catch (err) {
+    console.error('❌ [System] Repair failed. Please install build tools.');
+    process.exit(1);
+  }
+}
+// ----------------------------------------
+
 const { Client, GatewayIntentBits, Events } = require('discord.js');
 const fs = require('fs');
 const { 
