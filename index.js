@@ -61,19 +61,7 @@ try {
   }
 }
 // 4. In-process restart mechanism
-function restartBot() {
-  console.log('🔄 [System] Restarting bot...');
-  const { spawn } = require('child_process');
-  
-  // Relaunch the process
-  const child = spawn(process.argv[0], process.argv.slice(1), {
-    detached: true,
-    stdio: 'inherit'
-  });
-  
-  child.unref();
-  process.exit(0);
-}
+const { restartBot } = require('./src/restart');
 
 // 5. Update/Restart hook triggered by GitHub Webhook
 // This function will be called in src/github-notifier.js
