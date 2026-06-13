@@ -1,5 +1,6 @@
 const { EmbedBuilder } = require('discord.js');
 const axios = require('axios');
+const { execSync } = require('child_process');
 
 /**
  * Handle GitHub Push Event Webhook
@@ -33,51 +34,23 @@ async function handleGithubPush(client, payload, channelId) {
         return;
       }
     }
-
-    // --- REAL-TIME AUTO-UPDATE LOGIC ---
-    console.log('🔄 [GitHub Notifier] Webhook received. Checking for code updates...');
-    const { execSync } = require('child_process');
-    try {
-      execSync('git pull origin main', { stdio: 'inherit' });
-      console.log('✅ [GitHub Notifier] Code updated successfully. Waiting 5 seconds before restart...');
-      
-      // Add delay
-      await new Promise(resolve => setTimeout(resolve, 5000));
-      
-      const { restartBot } = require('./restart');
-      restartBot();
-    } catch (e) {
-      console.error('❌ [GitHub Notifier] Auto-update failed:', e.message);
-    }
-    // ------------------------------------
-
-    const repoName = payload?.repository?.full_name || 'Unknown Repo';
-    console.log(`📡 [GitHub Notifier] processing push for: ${repoName}`);
-    console.log(`📡 [GitHub Notifier] target channel: ${channelId}`);
     
     if (!payload || !payload.commits || payload.commits.length === 0) {
       console.log('ℹ️ [GitHub Notifier] No commits found in payload. Skipping.');
       return;
     }
 
+    // 1. Process Payload and Send Notification to Discord FIRST
+    const repoName = payload?.repository?.full_name || 'Unknown Repo';
     const repo = payload.repository?.full_name || 'unknown/repo';
     const branch = (payload.ref || '').replace('refs/heads/', '') || 'unknown';
     const pusher = payload.pusher?.name || payload.sender?.login || 'Unknown';
     const commits = payload.commits;
-    console.log(`📝 [GitHub Notifier] Found ${commits.length} commits by ${pusher} on ${branch}`);
-
     const compareUrl = payload.compare || payload.repository?.html_url;
     const token = process.env.GITHUB_TOKEN;
-
     const latestCommit = commits[commits.length - 1];
-    if (!latestCommit) {
-      console.log('⚠️ [GitHub Notifier] Latest commit is null. Skipping.');
-      return;
-    }
 
-    const shortHash = (latestCommit.id || '').substring(0, 7) || '???????';
-    const message = (latestCommit.message || 'No commit message').split('\n')[0];
-    const body = (latestCommit.message || '').split('\n').slice(1).join('\n').trim();
+    console.log(`📝 [GitHub Notifier] Found ${commits.length} commits by ${pusher} on ${branch}`);
 
     const embed = new EmbedBuilder()
       .setColor('#2dba4e')
@@ -101,13 +74,11 @@ async function handleGithubPush(client, payload, channelId) {
       description += '\n';
     }
 
-    description += `**Latest Commit: [\`${shortHash}\`](${latestCommit.url})**\n`;
-    description += `> ${message}\n`;
-    if (body) description += `> *${body.length > 500 ? body.substring(0, 500) + '...' : body}*\n`;
-    description += '\n';
-
+    description += `**Latest Commit: [\`${latestCommit.id.substring(0, 7)}\`](${latestCommit.url})**\n`;
+    description += `> ${(latestCommit.message || 'No commit message').split('\n')[0]}\n`;
+    
+    // Add Diff Preview
     if (token && latestCommit.id) {
-      console.log(`🔍 [GitHub Notifier] Fetching diff for ${shortHash}...`);
       try {
         const { data: commitData } = await axios.get(
           `https://api.github.com/repos/${repo}/commits/${latestCommit.id}`,
@@ -120,47 +91,44 @@ async function handleGithubPush(client, payload, channelId) {
             timeout: 5000
           }
         );
-
         const diffLines = (commitData || '').split('\n');
         let diffPreview = diffLines
           .filter(line => line.startsWith('+') || line.startsWith('-'))
           .filter(line => !line.startsWith('+++') && !line.startsWith('---'))
           .slice(0, 10)
           .join('\n');
-
         if (diffPreview) {
           description += `**Code Changes:**\n\`\`\`diff\n${diffPreview}\n${diffLines.length > 10 ? '...' : ''}\n\`\`\`\n`;
         }
       } catch (e) {
-        console.warn(`⚠️ [GitHub Notifier] Could not fetch diff for ${shortHash}:`, e.message);
+        console.warn(`⚠️ [GitHub Notifier] Could not fetch diff:`, e.message);
       }
     }
 
-    const filesChanged = [
-      ...(latestCommit.added || []), 
-      ...(latestCommit.modified || []), 
-      ...(latestCommit.removed || [])
-    ];
-    if (filesChanged.length > 0) {
-      const fileList = filesChanged.join('`, `');
-      description += `**Files:** \`${fileList.length > 500 ? fileList.substring(0, 500) + '...' : fileList}\``;
-    }
-
     embed.setDescription(description.substring(0, 4096));
-    const content = `🔨 **New Push to ${repo}**\n👤 **${pusher}** pushed ${commits.length} commit${commits.length > 1 ? 's' : ''} to \`${branch}\`\n📝 Latest: *${message}*`;
+    const content = `🔨 **New Push to ${repo}**\n👤 **${pusher}** pushed ${commits.length} commit${commits.length > 1 ? 's' : ''} to \`${branch}\``;
 
-    console.log(`📡 [GitHub Notifier] Fetching Discord channel ${channelId}...`);
     const channel = await client.channels.fetch(channelId);
     if (channel) {
-      console.log(`📡 [GitHub Notifier] Sending message to ${channel.name || channelId}...`);
       await channel.send({ content, embeds: [embed] });
       console.log(`✅ [GitHub Notifier] Notification sent successfully.`);
-    } else {
-      console.error(`❌ [GitHub Notifier] Channel ${channelId} not found.`);
+    }
+
+    // 2. Perform Auto-Update and Restart
+    console.log('🔄 [GitHub Notifier] Webhook processed. Starting update sequence...');
+    try {
+      execSync('git pull origin main', { stdio: 'inherit' });
+      console.log('✅ [GitHub Notifier] Code updated successfully. Waiting 5 seconds before restart...');
+      
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      
+      const { restartBot } = require('./restart');
+      restartBot();
+    } catch (e) {
+      console.error('❌ [GitHub Notifier] Auto-update/Restart failed:', e.message);
     }
   } catch (error) {
     console.error(`❌ [GitHub Notifier] Critical error:`, error.message);
-    if (error.stack) console.error(error.stack);
   }
 }
 
