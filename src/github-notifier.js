@@ -114,12 +114,14 @@ async function handleGithubPush(client, payload, channelId) {
     if (process.env.SMEE_URL) {
       console.log('🔄 [GitHub Notifier] Webhook with Smee detected. Starting update sequence...');
       try {
+        console.log('⏳ [GitHub Notifier] Executing git pull...');
         execSync('git pull origin main', { stdio: 'inherit' });
-        console.log('✅ [GitHub Notifier] Code updated successfully. Waiting 5 seconds before restart...');
+        console.log('✅ [GitHub Notifier] git pull successful. Waiting 5 seconds before trigger restart...');
         
         await new Promise(resolve => setTimeout(resolve, 5000));
         
         const { restartBot } = require('./restart');
+        console.log('🚀 [GitHub Notifier] Calling restartBot()...');
         restartBot();
       } catch (e) {
         console.error('❌ [GitHub Notifier] Auto-update/Restart failed:', e.message);
