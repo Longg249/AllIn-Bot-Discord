@@ -123,6 +123,7 @@ client.once(Events.ClientReady, async c => {
   const CYAN = '\x1b[38;2;0;255;255m';
   const NEON_GREEN = '\x1b[38;2;57;255;20m';
   const WHITE = '\x1b[37m';
+  const RED = '\x1b[31m';
   const NC = '\x1b[0m';
 
   const scavengerCount = await getDFItemCount();
