@@ -337,9 +337,6 @@ client.on(Events.InteractionCreate, async interaction => {
     } else if (interaction.customId.startsWith('slot_')) {
       const data = interaction.customId.replace('slot_', '');
       await handleSlotInteraction(interaction, data);
-    } else if (interaction.customId.startsWith('term_')) {
-      const { handleTerminalInteraction } = require('./src/terminal-ui');
-      await handleTerminalInteraction(interaction);
     }
   }
 });

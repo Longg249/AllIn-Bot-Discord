@@ -6,7 +6,6 @@ const scavengeGame = require('./scavenge');
 const ai = require('./ai');
 const lookup = require('./lookup');
 const reminders = require('./reminders');
-const terminalUI = require('./terminal-ui');
 
 const NOITU_CHANNELS = ['1512801317586866186', '1512855412100300900'];
 const BANK_CHANNEL = '1513092507804635136';
