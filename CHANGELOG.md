@@ -11,6 +11,9 @@ Tất cả các thay đổi quan trọng đối với dự án này sẽ đượ
     - Bot tự động thoát sau mỗi 12 giờ hoạt động để làm mới hệ thống tin tức và giải phóng bộ nhớ.
     - Cập nhật `start.bat`, `start-no-update.bat` và `start.sh` với vòng lặp tự động khởi động lại bot sau khi thoát.
 - **PM2 Support:** Thêm `cron_restart` vào `ecosystem.config.js` để PM2 tự động restart bot mỗi 12 giờ.
+- **GitHub Notifier:** Bot tích hợp sẵn khả năng nhận Webhook từ GitHub và gửi thông báo Embed chi tiết vào Discord.
+- **Auto-Config Webhook:** Bot tự động lấy IP công khai khi khởi động và cập nhật Payload URL lên GitHub Webhook (yêu cầu GITHUB_TOKEN).
+- **IP Detection:** Hiển thị địa chỉ IP và Payload URL gợi ý ngay trong Terminal khi khởi động.
 
 ### Changed
 - **README.md:** Viết lại toàn bộ tài liệu hướng dẫn, bổ sung chi tiết các tính năng Trò chơi (Games), Kinh tế (Economy), AI, và hướng dẫn sử dụng Manual Mode.
