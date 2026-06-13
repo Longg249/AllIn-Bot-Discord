@@ -310,10 +310,14 @@ client.once(Events.ClientReady, async c => {
   const startWebhookServer = require('./src/webhook-server');
   startWebhookServer(client);
 
-  // --- Polling: Tự động kiểm tra cập nhật mỗi 15 phút ---
-  const { checkForUpdatesAndRestart } = require('./src/polling-update');
-  setInterval(checkForUpdatesAndRestart, 15 * 60 * 1000);
-  console.log('🔄 [System] Polling update checker initialized (15 min interval).');
+  // --- Polling: Tự động kiểm tra cập nhật mỗi 15 phút (Chỉ chạy nếu không có Smee) ---
+  if (!process.env.SMEE_URL) {
+    const { checkForUpdatesAndRestart } = require('./src/polling-update');
+    setInterval(checkForUpdatesAndRestart, 15 * 60 * 1000);
+    console.log('🔄 [System] Polling update checker initialized (15 min interval).');
+  } else {
+    console.log('📡 [System] Smee detected. Polling disabled.');
+  }
 
   // Auto-restart logic: Exit process after 12 hours (43,200,000 ms)
   // Startup script or process manager will handle the restart.
