@@ -37,11 +37,11 @@ async function handleGithubPush(client, payload, channelId) {
     // --- REAL-TIME AUTO-UPDATE LOGIC ---
     console.log('🔄 [GitHub Notifier] Webhook received. Checking for code updates...');
     const { execSync } = require('child_process');
-    const { restartBot } = require('../index');
     try {
       execSync('git pull origin main', { stdio: 'inherit' });
       console.log('✅ [GitHub Notifier] Code updated successfully. Restarting bot...');
-      restartBot(); // Use the robust restart function
+      const { restartBot } = require('./restart');
+      restartBot();
     } catch (e) {
       console.error('❌ [GitHub Notifier] Auto-update failed:', e.message);
     }
