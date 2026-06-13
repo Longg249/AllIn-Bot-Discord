@@ -149,9 +149,10 @@ client.once(Events.ClientReady, async c => {
   console.log(`${NEON_PINK}╔════════════════════════════════════════════════════════════╗${NC}`);
   console.log(`${NEON_PINK}║${NC}        ${CYAN}🚀 ALLIN BOT SERVER - STARTUP SUCCESSFUL          ${NEON_PINK}║${NC}`);
   console.log(`${NEON_PINK}╚════════════════════════════════════════════════════════════╝${NC}`);
-  console.log(`${CYAN}🕒 Time:${NC}    ${new Date().toLocaleString('vi-VN')}`);
+  console.log(`${CYAN}🕒 Time:${NC}    ${new Date().toLocaleString('vi-VN')} (${Intl.DateTimeFormat().resolvedOptions().timeZone})`);
   console.log(`${CYAN}🤖 Account:${NC} ${NEON_GREEN}${c.user.tag}${NC}`);
   console.log(`${CYAN}🛡️ Status:${NC}   ${NEON_GREEN}ONLINE & READY${NC}`);
+  console.log(`${CYAN}🌍 Server IP:${NC} ${WHITE}${publicIp}${NC}`);
   
   console.log(`\n${WHITE}--- [ CORE INFRASTRUCTURE ] ---${NC}`);
   console.log(`📂 ${CYAN}Database:${NC} ${NEON_GREEN}CONNECTED${NC}   | 🤖 ${CYAN}AI Engine:${NC} ${NEON_GREEN}LOADED${NC}`);
