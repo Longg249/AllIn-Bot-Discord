@@ -181,31 +181,36 @@ client.once(Events.ClientReady, async c => {
       return;
     }
     console.log(`✅ Manual webhook push completed.`);
+    displayWebhookStatus(); // Refresh after manual push
   });
   
-  console.log(`\n${WHITE}--- [ WEBHOOK STATUS ] ---${NC}`);
-  let latest = 0;
-  const statusItems = [
-    { label: 'News', getter: 'getNews' },
-    { label: 'Crypto', getter: 'getCrypto' },
-    { label: 'Exchange', getter: 'getExchange' },
-    { label: 'Fuel', getter: 'getFuel' },
-  ];
-  
-  statusItems.forEach(s => {
-    const data = dataStore[s.getter]();
-    const icon = data.updatedAt ? '✅' : '❌';
-    console.log(`${CYAN}${s.label}:${NC} ${icon}`);
-    if (data.updatedAt && data.updatedAt.getTime() > latest) {
-      latest = data.updatedAt.getTime();
+  function displayWebhookStatus() {
+    console.log(`\n${WHITE}--- [ WEBHOOK STATUS ] ---${NC}`);
+    let latest = 0;
+    const statusItems = [
+      { label: 'News', getter: 'getNews' },
+      { label: 'Crypto', getter: 'getCrypto' },
+      { label: 'Exchange', getter: 'getExchange' },
+      { label: 'Fuel', getter: 'getFuel' },
+    ];
+    
+    statusItems.forEach(s => {
+      const data = dataStore[s.getter]();
+      const icon = data.updatedAt ? '✅' : '❌';
+      console.log(`${CYAN}${s.label}:${NC} ${icon}`);
+      if (data.updatedAt && data.updatedAt.getTime() > latest) {
+        latest = data.updatedAt.getTime();
+      }
+    });
+    
+    if (latest > 0) {
+      console.log(`${WHITE}Last update:${NC} ${new Date(latest).toLocaleString('vi-VN')}`);
+    } else {
+      console.log(`${WHITE}Last update:${NC} ${RED}Never${NC}`);
     }
-  });
-  
-  if (latest > 0) {
-    console.log(`${WHITE}Last update:${NC} ${new Date(latest).toLocaleString('vi-VN')}`);
-  } else {
-    console.log(`${WHITE}Last update:${NC} ${RED}Never${NC}`);
   }
+  
+  displayWebhookStatus();
   
   console.log(`\n${WHITE}--- [ GAME MODULES ] ---${NC}`);
   console.log(`🎲 ${CYAN}Tài Xỉu:${NC}   ${NEON_GREEN}READY${NC}`);
