@@ -183,13 +183,28 @@ client.once(Events.ClientReady, async c => {
   });
   
   console.log(`\n${WHITE}--- [ WEBHOOK STATUS ] ---${NC}`);
-  const status = {
-      News: dataStore.getNews().updatedAt ? '✅' : '❌',
-      Crypto: dataStore.getCrypto().updatedAt ? '✅' : '❌',
-      Exchange: dataStore.getExchange().updatedAt ? '✅' : '❌',
-      Fuel: dataStore.getFuel().updatedAt ? '✅' : '❌',
-  };
-  Object.entries(status).forEach(([k, v]) => console.log(`${CYAN}${k}:${NC} ${v}`));
+  let latest = 0;
+  const statusItems = [
+    { label: 'News', getter: 'getNews' },
+    { label: 'Crypto', getter: 'getCrypto' },
+    { label: 'Exchange', getter: 'getExchange' },
+    { label: 'Fuel', getter: 'getFuel' },
+  ];
+  
+  statusItems.forEach(s => {
+    const data = dataStore[s.getter]();
+    const icon = data.updatedAt ? '✅' : '❌';
+    console.log(`${CYAN}${s.label}:${NC} ${icon}`);
+    if (data.updatedAt && data.updatedAt.getTime() > latest) {
+      latest = data.updatedAt.getTime();
+    }
+  });
+  
+  if (latest > 0) {
+    console.log(`${WHITE}Last update:${NC} ${new Date(latest).toLocaleString('vi-VN')}`);
+  } else {
+    console.log(`${WHITE}Last update:${NC} ${RED}Never${NC}`);
+  }
   
   console.log(`\n${WHITE}--- [ GAME MODULES ] ---${NC}`);
   console.log(`🎲 ${CYAN}Tài Xỉu:${NC}   ${NEON_GREEN}READY${NC}`);
@@ -331,6 +346,16 @@ client.once(Events.ClientReady, async c => {
     smee.start();
     console.log(`📡 [Smee] Forwarding from ${process.env.SMEE_URL} to 127.0.0.1:${port}`);
   }
+
+  // --- Cron: Tự động cập nhật dữ liệu tin tức/tỷ giá mỗi 1h ---
+  setInterval(() => {
+    console.log('🔄 [Cron] Triggering hourly data update...');
+    const { exec } = require('child_process');
+    exec('node webhook-pusher.js --once', (error, stdout, stderr) => {
+      if (error) console.error(`❌ Cron update failed: ${error.message}`);
+      else console.log('✅ Cron update completed.');
+    });
+  }, 60 * 60 * 1000);
 
   // Auto-restart logic: Exit process after 12 hours (43,200,000 ms)
   // Startup script or process manager will handle the restart.
