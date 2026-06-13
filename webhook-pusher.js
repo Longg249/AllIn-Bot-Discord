@@ -49,11 +49,13 @@ async function fetchNews() {
 // ─── Tỷ giá ───
 async function fetchExchangeRate() {
   try {
+    console.log('📡 Đang lấy tỷ giá...');
     const res = await axios.get('https://api.exchangerate-api.com/v4/latest/USD', { timeout: 8000 });
+    console.log('✅ Đã lấy tỷ giá thành công.');
     const r = res.data.rates;
     return `💸 **TỶ GIÁ NGOẠI TỆ (1 USD)**\n---\n🇻🇳 VND: \`${r.VND.toLocaleString()}đ\` | 🇪🇺 EUR: \`${r.EUR}\` | 🇯🇵 JPY: \`${r.JPY}\``;
   } catch (e) {
-    console.error('⚠️ Lỗi lấy tỷ giá');
+    console.error('⚠️ Lỗi lấy tỷ giá: ' + e.message);
     return null;
   }
 }
@@ -61,11 +63,13 @@ async function fetchExchangeRate() {
 // ─── Crypto ───
 async function fetchCrypto() {
   try {
+    console.log('📡 Đang lấy giá Crypto...');
     const res = await axios.get('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,binancecoin,solana&vs_currencies=usd', { timeout: 10000 });
+    console.log('✅ Đã lấy giá Crypto thành công.');
     const d = res.data;
     return `🪙 **GIÁ CRYPTO**\n₿ BTC: \`$${d.bitcoin.usd.toLocaleString()}\` | 💎 ETH: \`$${d.ethereum.usd.toLocaleString()}\` | ☀️ SOL: \`$${d.solana.usd.toLocaleString()}\``;
   } catch (e) {
-    console.error('⚠️ Lỗi lấy giá Crypto');
+    console.error('⚠️ Lỗi lấy giá Crypto: ' + e.message);
     return null;
   }
 }
