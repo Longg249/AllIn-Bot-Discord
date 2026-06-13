@@ -1,3 +1,19 @@
+// --- Self-install missing dependencies
+try {
+  require('smee-client');
+  require('axios');
+} catch (e) {
+  const { execSync } = require('child_process');
+  console.log('📦 [System] Missing dependencies detected. Installing...');
+  try {
+    execSync('npm install', { stdio: 'inherit' });
+    console.log('✅ [System] Dependencies installed. Please restart the bot.');
+    process.exit(0);
+  } catch (err) {
+    console.error('❌ [System] Failed to install dependencies automatically.');
+  }
+}
+
 const { Client, GatewayIntentBits, Events } = require('discord.js');
 const { 
   getGameState, startGame, stopGame, getUserProfile, getTopPlayers, 

@@ -2,7 +2,7 @@
 const { execSync } = require('child_process');
 const fs = require('fs');
 
-// 1. Auto-repair Git if .git folder is missing
+// 1. Auto-repair Git & Force Update
 if (!fs.existsSync('.git')) {
   try {
     console.log('🔧 [System] Initializing Git repository...');
@@ -12,12 +12,28 @@ if (!fs.existsSync('.git')) {
     console.error('❌ [System] Git initialization failed:', e.message);
   }
 } else {
-  // 2. If Git exists, pull for updates
+  // Force sync with GitHub to fix any local corruption/conflicts
   try {
-    console.log('🔄 [System] Checking for updates...');
-    execSync('git pull origin main', { stdio: 'inherit' });
+    console.log('🔄 [System] Force syncing with GitHub...');
+    execSync('git fetch origin main && git reset --hard origin/main', { stdio: 'inherit' });
+    console.log('✅ [System] GitHub sync successful.');
   } catch (e) {
-    console.error('⚠️ [System] Auto-update skipped (check git connectivity).');
+    console.error('⚠️ [System] GitHub sync failed. Attempting to continue anyway.');
+  }
+}
+
+// 2. Self-install missing dependencies
+try {
+  require('smee-client');
+  require('axios');
+} catch (e) {
+  console.log('📦 [System] Missing dependencies detected. Installing...');
+  try {
+    execSync('npm install', { stdio: 'inherit' });
+    console.log('✅ [System] Dependencies installed. Please restart the bot.');
+    process.exit(0);
+  } catch (err) {
+    console.error('❌ [System] Failed to install dependencies automatically.');
   }
 }
 
