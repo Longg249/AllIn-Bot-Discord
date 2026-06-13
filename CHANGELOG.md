@@ -30,5 +30,6 @@ Tất cả các thay đổi quan trọng đối với dự án này sẽ đượ
     - Thêm logging chi tiết trong Terminal để dễ dàng debug quá trình nhận và gửi thông báo.
 - **Smee.io Auto-Config Fix:** Sửa lỗi bot tự động ghi đè URL Webhook trên GitHub bằng IP công khai ngay cả khi đang sử dụng Smee.io. Giờ đây bot sẽ ưu tiên dùng `SMEE_URL` để cấu hình GitHub Webhook.
 
+- **Auto-Restart on Update:** Bot tự động kiểm tra code mới trên GitHub mỗi giờ, tự cập nhật và khởi động lại nếu phát hiện commit mới.
+
 ---
-*Cập nhật bởi Gemini CLI.*
