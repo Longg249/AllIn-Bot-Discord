@@ -1,6 +1,5 @@
 const { EmbedBuilder } = require('discord.js');
 const axios = require('axios');
-const { execSync } = require('child_process');
 
 /**
  * Handle GitHub Push Event Webhook
@@ -15,19 +14,16 @@ async function handleGithubPush(client, payload, channelId) {
     
     // Handle nesting (Smee body or URL-encoded 'payload' field)
     if (payload && payload.body) {
-      console.log('📡 [GitHub Notifier] Detected nested body in payload. Unwrapping...');
       payload = payload.body;
     }
     
     if (payload && payload.payload) {
-      console.log('📡 [GitHub Notifier] Detected nested "payload" key. Unwrapping...');
       payload = payload.payload;
     }
 
     // If payload is a string (common in URL-encoded webhooks), parse it
     if (typeof payload === 'string') {
       try {
-        console.log('📡 [GitHub Notifier] Payload is a string. Parsing JSON...');
         payload = JSON.parse(payload);
       } catch (e) {
         console.error('❌ [GitHub Notifier] Failed to parse string payload as JSON:', e.message);
@@ -40,8 +36,7 @@ async function handleGithubPush(client, payload, channelId) {
       return;
     }
 
-    // 1. Process Payload and Send Notification to Discord FIRST
-    const repoName = payload?.repository?.full_name || 'Unknown Repo';
+    // 1. Process Payload and Send Notification to Discord
     const repo = payload.repository?.full_name || 'unknown/repo';
     const branch = (payload.ref || '').replace('refs/heads/', '') || 'unknown';
     const pusher = payload.pusher?.name || payload.sender?.login || 'Unknown';
@@ -114,19 +109,6 @@ async function handleGithubPush(client, payload, channelId) {
       console.log(`✅ [GitHub Notifier] Notification sent successfully.`);
     }
 
-    // 2. Perform Auto-Update and Restart
-    console.log('🔄 [GitHub Notifier] Webhook processed. Starting update sequence...');
-    try {
-      execSync('git pull origin main', { stdio: 'inherit' });
-      console.log('✅ [GitHub Notifier] Code updated successfully. Waiting 5 seconds before restart...');
-      
-      await new Promise(resolve => setTimeout(resolve, 5000));
-      
-      const { restartBot } = require('./restart');
-      restartBot();
-    } catch (e) {
-      console.error('❌ [GitHub Notifier] Auto-update/Restart failed:', e.message);
-    }
   } catch (error) {
     console.error(`❌ [GitHub Notifier] Critical error:`, error.message);
   }
