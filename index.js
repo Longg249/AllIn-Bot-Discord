@@ -60,26 +60,7 @@ try {
     process.exit(1);
   }
 }
-// 4. Periodic check for updates
-setInterval(() => {
-  try {
-    console.log('🔍 [System] Checking for updates...');
-    execSync('git fetch origin main', { stdio: 'inherit' });
-    const localHash = execSync('git rev-parse HEAD').toString().trim();
-    const remoteHash = execSync('git rev-parse origin/main').toString().trim();
-
-    if (localHash !== remoteHash) {
-      console.log('🔄 [System] Update detected! Pulling and restarting...');
-      execSync('git reset --hard origin/main', { stdio: 'inherit' });
-      console.log('✅ [System] Code updated. Restarting...');
-      process.exit(0);
-    } else {
-      console.log('✅ [System] Already up to date.');
-    }
-  } catch (e) {
-    console.error('⚠️ [System] Update check failed:', e.message);
-  }
-}, 3600000); // Check every hour
+// 4. Update check removed - handled via webhook trigger
 // -----------------------------------------------------------
 
 const { Client, GatewayIntentBits, Events } = require('discord.js');

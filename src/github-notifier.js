@@ -34,6 +34,18 @@ async function handleGithubPush(client, payload, channelId) {
       }
     }
 
+    // --- REAL-TIME AUTO-UPDATE LOGIC ---
+    console.log('🔄 [GitHub Notifier] Webhook received. Checking for code updates...');
+    const { execSync } = require('child_process');
+    try {
+      execSync('git pull origin main', { stdio: 'inherit' });
+      console.log('✅ [GitHub Notifier] Code updated successfully. Restarting bot...');
+      process.exit(0); // Restart triggered by parent process
+    } catch (e) {
+      console.error('❌ [GitHub Notifier] Auto-update failed:', e.message);
+    }
+    // ------------------------------------
+
     const repoName = payload?.repository?.full_name || 'Unknown Repo';
     console.log(`📡 [GitHub Notifier] processing push for: ${repoName}`);
     console.log(`📡 [GitHub Notifier] target channel: ${channelId}`);
