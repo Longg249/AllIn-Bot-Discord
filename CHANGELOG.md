@@ -14,6 +14,7 @@ Tất cả các thay đổi quan trọng đối với dự án này sẽ đượ
 - **GitHub Notifier:** Bot tích hợp sẵn khả năng nhận Webhook từ GitHub và gửi thông báo Embed chi tiết vào Discord.
 - **Auto-Config Webhook:** Bot tự động lấy IP công khai khi khởi động và cập nhật Payload URL lên GitHub Webhook (yêu cầu GITHUB_TOKEN).
 - **Smee.io Integration:** Hỗ trợ nhận Webhook qua URL cố định của Smee, giúp hệ thống hoạt động ổn định trên cả máy có IP động mà không cần mở port.
+- **Node.js Compatibility:** Hạ cấp `smee-client` xuống v2.x để đảm bảo tương thích hoàn hảo với Node.js v21 và các môi trường cũ hơn.
 - **IP Detection:** Hiển thị địa chỉ IP và Payload URL gợi ý ngay trong Terminal khi khởi động.
 
 ### Changed
