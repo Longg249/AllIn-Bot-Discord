@@ -262,6 +262,14 @@ client.once(Events.ClientReady, async c => {
   // Start webhook server
   const startWebhookServer = require('./src/webhook-server');
   startWebhookServer(client);
+
+  // Auto-restart logic: Exit process after 12 hours (43,200,000 ms)
+  // Startup script or process manager will handle the restart.
+  const TWELVE_HOURS_MS = 12 * 60 * 60 * 1000;
+  setTimeout(() => {
+    console.log('🔄 [System] 12-hour limit reached. Exiting for scheduled restart...');
+    process.exit(0);
+  }, TWELVE_HOURS_MS);
 });
 
 const { slashHandler, handleSlotInteraction } = require('./src/slash');

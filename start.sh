@@ -51,5 +51,9 @@ fi
 # 5. Run the bot
 echo "[+] Starting the bot..."
 echo "----------------------------------------------------"
-node index.js
+while true; do
+    node index.js
+    echo "[!] Bot exited. Restarting in 5 seconds..."
+    sleep 5
+done
 echo "----------------------------------------------------"

@@ -4,6 +4,7 @@ module.exports = {
       name: 'bot-allin',
       script: 'index.js',
       autorestart: true,
+      cron_restart: '0 */12 * * *',
       max_memory_restart: '512M',
       env: { NODE_ENV: 'production' }
     },

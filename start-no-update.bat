@@ -57,7 +57,11 @@ if not exist ".env" (
 :: 6. Run the bot using the no-update index file
 echo [+] Starting the bot (No-Update Mode)...
 echo ----------------------------------------------------
+:loop
 node index-no-update.js
+echo [!] Bot exited. Restarting in 5 seconds...
+timeout /t 5 >nul
+goto loop
 echo ----------------------------------------------------
 
 pause

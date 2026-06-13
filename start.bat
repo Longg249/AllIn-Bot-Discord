@@ -57,7 +57,11 @@ if not exist ".env" (
 :: 5. Run the bot
 echo [+] Starting the bot...
 echo ----------------------------------------------------
+:loop
 node index.js
+echo [!] Bot exited. Restarting in 5 seconds...
+timeout /t 5 >nul
+goto loop
 echo ----------------------------------------------------
 
 pause
