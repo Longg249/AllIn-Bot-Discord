@@ -11,9 +11,27 @@ async function handleGithubPush(client, payload, channelId) {
   try {
     // Debug: Log payload structure
     console.log(`📡 [GitHub Notifier] Payload Keys: ${Object.keys(payload || {}).join(', ')}`);
+    
+    // Handle nesting (Smee body or URL-encoded 'payload' field)
     if (payload && payload.body) {
       console.log('📡 [GitHub Notifier] Detected nested body in payload. Unwrapping...');
       payload = payload.body;
+    }
+    
+    if (payload && payload.payload) {
+      console.log('📡 [GitHub Notifier] Detected nested "payload" key. Unwrapping...');
+      payload = payload.payload;
+    }
+
+    // If payload is a string (common in URL-encoded webhooks), parse it
+    if (typeof payload === 'string') {
+      try {
+        console.log('📡 [GitHub Notifier] Payload is a string. Parsing JSON...');
+        payload = JSON.parse(payload);
+      } catch (e) {
+        console.error('❌ [GitHub Notifier] Failed to parse string payload as JSON:', e.message);
+        return;
+      }
     }
 
     const repoName = payload?.repository?.full_name || 'Unknown Repo';
