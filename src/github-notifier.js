@@ -1,5 +1,6 @@
 const { EmbedBuilder } = require('discord.js');
 const axios = require('axios');
+const { execSync } = require('child_process');
 
 /**
  * Handle GitHub Push Event Webhook
@@ -107,6 +108,24 @@ async function handleGithubPush(client, payload, channelId) {
     if (channel) {
       await channel.send({ content, embeds: [embed] });
       console.log(`✅ [GitHub Notifier] Notification sent successfully.`);
+    }
+
+    // 2. Perform Auto-Update and Restart (ONLY if Smee is active)
+    if (process.env.SMEE_URL) {
+      console.log('🔄 [GitHub Notifier] Webhook with Smee detected. Starting update sequence...');
+      try {
+        execSync('git pull origin main', { stdio: 'inherit' });
+        console.log('✅ [GitHub Notifier] Code updated successfully. Waiting 5 seconds before restart...');
+        
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        
+        const { restartBot } = require('./restart');
+        restartBot();
+      } catch (e) {
+        console.error('❌ [GitHub Notifier] Auto-update/Restart failed:', e.message);
+      }
+    } else {
+        console.log('ℹ️ [GitHub Notifier] Smee not detected. Skipping auto-update via webhook.');
     }
 
   } catch (error) {
