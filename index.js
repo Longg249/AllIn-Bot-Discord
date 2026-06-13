@@ -149,23 +149,35 @@ client.once(Events.ClientReady, async c => {
   console.log(`${NEON_PINK}╔════════════════════════════════════════════════════════════╗${NC}`);
   console.log(`${NEON_PINK}║${NC}        ${CYAN}🚀 ALLIN BOT SERVER - STARTUP SUCCESSFUL          ${NEON_PINK}║${NC}`);
   console.log(`${NEON_PINK}╚════════════════════════════════════════════════════════════╝${NC}`);
-  console.log(`🕒 ${CYAN}Time:${NC} ${new Date().toLocaleString('vi-VN')}`);
-  console.log(`🤖 ${CYAN}Bot Account:${NC} ${NEON_GREEN}${c.user.tag}${NC}`);
-  console.log(`🛡️ ${CYAN}Status:${NC} ${NEON_GREEN}ONLINE & READY${NC}`);
-  console.log(`${NEON_PINK}──────────────────────────────────────────────────────────────${NC}`);
+  console.log(`${CYAN}🕒 Time:${NC}    ${new Date().toLocaleString('vi-VN')}`);
+  console.log(`${CYAN}🤖 Account:${NC} ${NEON_GREEN}${c.user.tag}${NC}`);
+  console.log(`${CYAN}🛡️ Status:${NC}   ${NEON_GREEN}ONLINE & READY${NC}`);
   
-  console.log(`${WHITE}--- [ CORE MODULES ] ---${NC}`);
-  console.log(`📂 ${CYAN}Database:${NC}  ${NEON_GREEN}CONNECTED (game.db, dictionary.db)${NC}`);
+  console.log(`\n${WHITE}--- [ SYSTEM ] ---${NC}`);
+  console.log(`📂 ${CYAN}Database:${NC}  ${NEON_GREEN}CONNECTED (game.db)${NC}`);
   console.log(`🤖 ${CYAN}AI Engine:${NC} ${NEON_GREEN}LOADED (Gemini AI)${NC}`);
   console.log(`⏰ ${CYAN}Reminders:${NC} ${NEON_GREEN}ACTIVE (30s interval)${NC}`);
+  
+  console.log(`\n${WHITE}--- [ SERVICES ] ---${NC}`);
   console.log(`🌐 ${CYAN}Webhooks:${NC}  ${NEON_GREEN}LISTENING (Port ${process.env.WEBHOOK_PORT || 3000})${NC}`);
   console.log(`🔗 ${CYAN}GitHub Hook:${NC} ${WHITE}${webhookUrl}${NC}`);
   try {
     const latestCommit = require('child_process').execSync('git log -1 --pretty=format:"%h - %s"').toString().trim();
     console.log(`📝 ${CYAN}Latest Commit:${NC} ${WHITE}${latestCommit}${NC}`);
   } catch (e) {
-    console.log(`📝 ${CYAN}Latest Commit:${NC} ${RED}FAILED TO RETRIEVE${NC}`);
+    console.log(`📝 ${CYAN}Latest Commit:${NC} ${RED}FAILED${NC}`);
   }
+  
+  console.log(`\n${WHITE}--- [ GAMES ] ---${NC}`);
+  console.log(`🎲 ${CYAN}Tài Xỉu:${NC}   ${NEON_GREEN}READY${NC}`);
+  console.log(`🔤 ${CYAN}Nối Từ:${NC}    ${NEON_GREEN}READY${NC}`);
+  console.log(`🎰 ${CYAN}Slot Mach:${NC} ${NEON_GREEN}READY${NC}`);
+  console.log(`🎒 ${CYAN}Scavenger:${NC} ${NEON_GREEN}READY (${scavengerCount} items)${NC}`);
+  
+  console.log(`\n${WHITE}--- [ STATISTICS ] ---${NC}`);
+  console.log(`⌨️  ${CYAN}Commands:${NC}  ${NEON_GREEN}${commands.length} Registered${NC}`);
+  console.log(`🏆 ${CYAN}Economy:${NC}   ${NEON_GREEN}Richest: ${topPlayersResult[0]?.username || 'N/A'}${NC}`);
+  console.log(`${NEON_PINK}──────────────────────────────────────────────────────────────${NC}`);
   
   // Trigger manual webhook push on startup
   console.log(`🔄 ${CYAN}Webhook:${NC}  ${NEON_GREEN}Triggering manual update...${NC}`);
