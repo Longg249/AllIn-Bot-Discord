@@ -1,3 +1,6 @@
-Webhook test performed on Saturday, June 13, 2026.
-If you see this in Discord, the webhook is working perfectly!
-🚀 AllIn-Bot-Discord Update Notification Test.
+Webhook Test Log - v2.0
+------------------------
+Status: Testing detailed notifications.
+Change: Added multi-line commit message to verify Discord embed content.
+Timestamp: Saturday, June 13, 2026.
+Goal: Display specific changes in Discord UI.
