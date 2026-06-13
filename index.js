@@ -183,9 +183,8 @@ client.once(Events.ClientReady, async c => {
     }
     displayWebhookStatus(); // Refresh after manual push
   });
-  
   function displayWebhookStatus() {
-    console.log(`\n${WHITE}--- [ WEBHOOK STATUS ] ---${NC}`);
+    console.log(`\n${WHITE}--- [ WEBHOOK STATUS (Real-time) ] ---${NC}`);
     let latest = 0;
     const statusItems = [
       { label: 'News', getter: 'getNews' },
@@ -193,7 +192,7 @@ client.once(Events.ClientReady, async c => {
       { label: 'Exchange', getter: 'getExchange' },
       { label: 'Fuel', getter: 'getFuel' },
     ];
-    
+
     statusItems.forEach(s => {
       const data = dataStore[s.getter]();
       const icon = data.updatedAt ? '✅' : '❌';
@@ -202,14 +201,16 @@ client.once(Events.ClientReady, async c => {
         latest = data.updatedAt.getTime();
       }
     });
-    
+
     if (latest > 0) {
       console.log(`${WHITE}Last update:${NC} ${new Date(latest).toLocaleString('vi-VN')}`);
     } else {
       console.log(`${WHITE}Last update:${NC} ${RED}Never${NC}`);
     }
   }
-  
+
+  // Hiển thị trạng thái ngay khi khởi động
+  displayWebhookStatus();
   // Hiển thị trạng thái ngay khi khởi động
   displayWebhookStatus();
   console.log(`🎲 ${CYAN}Tài Xỉu:${NC}   ${NEON_GREEN}READY${NC}`);
