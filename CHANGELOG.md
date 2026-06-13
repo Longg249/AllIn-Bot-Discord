@@ -23,7 +23,11 @@ Tất cả các thay đổi quan trọng đối với dự án này sẽ đượ
 
 ### Fixed
 - Khắc phục lỗi tin tức/webhook thỉnh thoảng không cập nhật sau thời gian dài chạy liên tục bằng cơ chế restart định kỳ.
-- **Webhook Formatting:** Thêm nội dung plain-text vào thông báo GitHub để đảm bảo thông tin luôn hiển thị rõ ràng trên Discord ngay cả khi Embed gặp sự cố.
+- **Webhook Robustness:** 
+    - Thêm nội dung plain-text vào thông báo GitHub để hiển thị rõ ràng ngay cả khi Discord không tải được Embed.
+    - Xử lý thành công các Webhook từ GitHub ở định dạng form-encoded (unwrap `payload` key).
+    - Tự động parse stringified JSON từ các dịch vụ proxy trung gian.
+    - Thêm logging chi tiết trong Terminal để dễ dàng debug quá trình nhận và gửi thông báo.
 - **Smee.io Auto-Config Fix:** Sửa lỗi bot tự động ghi đè URL Webhook trên GitHub bằng IP công khai ngay cả khi đang sử dụng Smee.io. Giờ đây bot sẽ ưu tiên dùng `SMEE_URL` để cấu hình GitHub Webhook.
 
 ---

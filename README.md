@@ -24,6 +24,7 @@ AllIn-Bot là một bot Discord đa năng, hiện đại, tích hợp AI và nhi
 *   **Hỏi Đáp AI (`/ask`):** Tích hợp Gemini AI mạnh mẽ trả lời mọi thắc mắc.
 *   **Nhắc Nhở (`/remind`):** Quản lý thời gian hiệu quả với hệ thống thông báo hẹn giờ.
 *   **Tin Tức & Tài Chính:** Tự động cập nhật Tin tức, Crypto, Giá xăng dầu và Tỷ giá ngoại tệ qua Webhook.
+*   **GitHub Notifications:** Tự động gửi thông báo chi tiết (Diff, Files, Author) khi có code mới được push lên Repo.
 
 ### 🛠 Hệ Thống Thông Minh
 *   **Self-Repair:** Tự động sửa lỗi môi trường SQLite3 và cấu hình Git khi khởi động.
@@ -70,6 +71,17 @@ Nếu bạn đã sửa code local và không muốn bị ghi đè:
 1. Cấp quyền: `termux-setup-storage`.
 2. Cài đặt tool build: `pkg install nodejs python make gcc build-essential git libsqlite`.
 3. Khởi chạy nhanh qua Widget bằng cách chạy: `bash setup-termux.sh`.
+
+---
+
+## 🌐 Cấu hình GitHub Webhook (Optional)
+Để bot tự động gửi thông báo khi có code mới:
+1.  **Sử dụng Smee.io (Khuyên dùng):** 
+    - Truy cập [smee.io](https://smee.io/) và tạo một channel.
+    - Copy URL (ví dụ: `https://smee.io/abcxyz`) và dán vào `SMEE_URL` trong file `.env`.
+2.  **Sử dụng IP trực tiếp:** 
+    - Đảm bảo port `WEBHOOK_PORT` (mặc định 3000) đã được mở (Port Forwarding).
+3.  **GITHUB_TOKEN:** Tạo [Fine-grained personal access token](https://github.com/settings/tokens?type=beta) có quyền `Write` đối với `Webhooks` để bot tự động cấu hình cho bạn.
 
 ---
 
