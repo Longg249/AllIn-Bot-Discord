@@ -1,71 +1,83 @@
 # AllIn-Bot-Discord
 
-AllIn-Bot là một bot Discord đa năng được phát triển đặc biệt để chạy mượt mà trên môi trường Termux (Android).
+AllIn-Bot là một bot Discord đa năng, hiện đại, tích hợp AI và nhiều trò chơi giải trí, được tối ưu hóa cho cả môi trường **Windows** và **Termux (Android)**.
 
 > **⚠️ Disclaimer:** Các trò chơi trong bot này chỉ dành cho mục đích giải trí. Tất cả đơn vị tiền tệ trong game chỉ là tiền ảo, không có giá trị thật và không liên quan đến bất kỳ hình thức cá cược tiền thật nào.
 
-## 🎮 Các Trò Chơi
+---
 
-*   **Nối Từ (`noitu.js`):** Trò chơi trí tuệ thách thức vốn từ vựng của bạn.
-*   **Over/Under (`overUnder.js`):** Trò chơi dự đoán tài xỉu đầy kịch tính.
-*   **Slot Machine (`slot.js`):** Vòng quay may mắn với cơ hội trúng thưởng lớn.
+## 🚀 Tính Năng Nổi Bật
 
-## 🛠 Các Tính Năng Khác
+### 🎮 Trò Chơi Giải Trí
+*   **Nối Từ (`/noitu`):** Thử thách vốn từ vựng tiếng Việt với hệ thống đếm ngược thời gian thực.
+*   **Tài Xỉu (`/taixiu`):** Cá cược vui nhộn với kênh chuyên dụng và giao diện nút bấm tương tác.
+*   **Slot Machine (`/slot`):** Máy quay số may mắn nhận thưởng.
+*   **Delta Force Scavenge (`/scavenge`):** Hệ thống giả lập đi map nhặt đồ, nâng cấp kho đồ cá nhân.
 
-*   **Cập Nhật Tin Tức:** Tự động theo dõi và cập nhật các thông tin mới nhất.
-*   **Hệ Thống Tiền Tệ (Economy):** Kiếm tiền thông qua các trò chơi, lưu trữ dữ liệu người dùng an toàn.
-*   **Hỗ Trợ Termux (Android):** Tối ưu hóa chạy trên điện thoại, hỗ trợ tạo shortcut widget khởi chạy nhanh.
+### 💰 Kinh Tế & Cá Nhân
+*   **Hồ Sơ (`/profile`):** Xem cấp độ, số dư và danh hiệu.
+*   **Ngân Hàng:** Gửi tiền (`/deposit`), rút tiền (`/withdraw`), và vay vốn (`/loan`) để đầu tư.
+*   **Quà Tặng (`/reward`):** Nhận quà miễn phí định kỳ mỗi 4 giờ.
+*   **Bảng Xếp Hạng (`/leaderboard`):** Vinh danh những người giàu nhất máy chủ.
+
+### 🤖 Tiện Ích & AI
+*   **Hỏi Đáp AI (`/ask`):** Tích hợp Gemini AI mạnh mẽ trả lời mọi thắc mắc.
+*   **Nhắc Nhở (`/remind`):** Quản lý thời gian hiệu quả với hệ thống thông báo hẹn giờ.
+*   **Tin Tức & Tài Chính:** Tự động cập nhật Tin tức, Crypto, Giá xăng dầu và Tỷ giá ngoại tệ qua Webhook.
+
+### 🛠 Hệ Thống Thông Minh
+*   **Self-Repair:** Tự động sửa lỗi môi trường SQLite3 và cấu hình Git khi khởi động.
+*   **Auto-Update:** Luôn cập nhật code mới nhất từ GitHub.
+*   **Monitoring:** Giao diện Terminal theo dõi trạng thái bot thời gian thực.
 
 ---
 
-## 🚀 Hướng Dẫn Cài Đặt
+## 💻 Hướng Dẫn Cài Đặt
 
-### 1. Chuẩn bị
-- Tải [Termux](https://f-droid.org/packages/com.termux/) từ **F-Droid**.
-- Mở Termux và cấp quyền lưu trữ:
-  ```bash
-  termux-setup-storage
-  ```
+### 1. Chuẩn Bị
+- Cài đặt [Node.js](https://nodejs.org/) (Windows) hoặc [Termux](https://f-droid.org/packages/com.termux/) (Android).
+- Tạo Bot trên [Discord Developer Portal](https://discord.com/developers/applications).
 
-### 2. Cài Đặt Dependencies
-Chạy lệnh sau:
+### 2. Cài Đặt
 ```bash
-pkg update -y && pkg upgrade -y
-pkg install -y nodejs python make gcc build-essential git libsqlite
-```
-
-### 3. Cài Đặt Bot
-```bash
-git clone https://github.com/Longg249/AllIn-Bot-Discord ~/allin-bot
-cd ~/allin-bot
+git clone https://github.com/Longg249/AllIn-Bot-Discord.git
+cd AllIn-Bot-Discord
 npm install
-npm rebuild sqlite3
 ```
 
-### 4. Cấu Hình
-Tạo file `.env` và nhập thông tin:
-```bash
-nano .env
+### 3. Cấu Hình
+Tạo file `.env` từ mẫu `.env.example`:
+```env
+DISCORD_TOKEN=Token_của_bạn
+CLIENT_ID=ID_của_bot
+GEMINI_API_KEY=Key_Gemini_AI (nếu dùng /ask)
 ```
-*(Nhập: `DISCORD_TOKEN`, `CLIENT_ID`, `WEBHOOK_SECRET`)*
 
-### 5. Khởi Chạy
-- Đăng ký lệnh: `node deploy-commands.js`
-- Chạy Bot: `node index.js`
+### 4. Khởi Chạy
+
+#### Chế độ mặc định (Tự động cập nhật):
+- **Windows:** Chạy file `start.bat`.
+- **Lệnh console:** `node index.js`.
+
+#### Chế độ Manual (Không tự động cập nhật):
+Nếu bạn đã sửa code local và không muốn bị ghi đè:
+- **Windows:** Chạy file `start-no-update.bat`.
+- **Lệnh console:** `node index-no-update.js`.
+
+---
+
+## 🛠 Hướng Dẫn Riêng Cho Termux
+1. Cấp quyền: `termux-setup-storage`.
+2. Cài đặt tool build: `pkg install nodejs python make gcc build-essential git libsqlite`.
+3. Khởi chạy nhanh qua Widget bằng cách chạy: `bash setup-termux.sh`.
 
 ---
 
-## 🛠 Tiện Ích Termux (Widget)
-1. Cài **Termux:Widget** từ F-Droid.
-2. Chạy: `bash setup-widget.sh`
-3. Thêm widget ra màn hình chính, chọn `allin-bot`.
+## 📁 Cấu Trúc Dự Án
+- `index.js`: Điểm khởi đầu của bot (có auto-update).
+- `src/games/`: Chứa mã nguồn các trò chơi.
+- `src/database.js`: Quản lý dữ liệu SQLite.
+- `dictionary.db`: Từ điển cho game Nối Từ.
 
 ---
-
-## 📁 Cấu Trúc Thư Mục
-- `index.js`: File chính.
-- `src/games/`: Chứa code các trò chơi.
-- `dictionary.db`: Dữ liệu game Nối Từ.
-
----
-*Phát triển bởi Longg249.*
+*Phát triển và duy trì bởi **Longg249**.*
