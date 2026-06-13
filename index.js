@@ -60,6 +60,7 @@ const dataStore = require('./src/data-store');
 const ai = require('./src/ai');
 const lookup = require('./src/lookup');
 const reminders = require('./src/reminders');
+const { autoConfigWebhook } = require('./src/github-config');
 
 require('dotenv').config();
 const client = new Client({
@@ -115,6 +116,11 @@ client.once(Events.ClientReady, async c => {
     publicIp = 'Check your connection';
   }
   const webhookUrl = `http://${publicIp}:${process.env.WEBHOOK_PORT || 3000}/webhook/github`;
+
+  // --- Auto-config GitHub Webhook if GITHUB_TOKEN exists ---
+  if (publicIp !== 'Unknown' && publicIp !== 'Check your connection') {
+    autoConfigWebhook(publicIp).catch(err => console.error('❌ GitHub auto-config failed:', err.message));
+  }
 
   // console.clear();
   console.log(`${NEON_PINK}╔════════════════════════════════════════════════════════════╗${NC}`);
