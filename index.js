@@ -316,7 +316,16 @@ client.once(Events.ClientReady, async c => {
     setInterval(checkForUpdatesAndRestart, 15 * 60 * 1000);
     console.log('🔄 [System] Polling update checker initialized (15 min interval).');
   } else {
-    console.log('📡 [System] Smee detected. Polling disabled.');
+    console.log('📡 [System] Smee detected. Đang khởi tạo Webhook forwarding...');
+    const SmeeClient = require('smee-client');
+    const port = process.env.WEBHOOK_PORT || 3000;
+    const smee = new SmeeClient({
+      source: process.env.SMEE_URL,
+      target: `http://127.0.0.1:${port}/webhook/github`,
+      logger: console
+    });
+    smee.start();
+    console.log(`📡 [Smee] Forwarding from ${process.env.SMEE_URL} to 127.0.0.1:${port}`);
   }
 
   // Auto-restart logic: Exit process after 12 hours (43,200,000 ms)
