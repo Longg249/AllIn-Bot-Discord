@@ -9,6 +9,13 @@ const axios = require('axios');
  */
 async function handleGithubPush(client, payload, channelId) {
   try {
+    // Debug: Log payload structure
+    console.log(`📡 [GitHub Notifier] Payload Keys: ${Object.keys(payload || {}).join(', ')}`);
+    if (payload && payload.body) {
+      console.log('📡 [GitHub Notifier] Detected nested body in payload. Unwrapping...');
+      payload = payload.body;
+    }
+
     const repoName = payload?.repository?.full_name || 'Unknown Repo';
     console.log(`📡 [GitHub Notifier] processing push for: ${repoName}`);
     console.log(`📡 [GitHub Notifier] target channel: ${channelId}`);
