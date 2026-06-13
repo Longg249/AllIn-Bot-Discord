@@ -178,9 +178,9 @@ client.once(Events.ClientReady, async c => {
   exec('node webhook-pusher.js --once', (error, stdout, stderr) => {
     if (error) {
       console.error(`❌ Manual webhook push failed: ${error.message}`);
-      return;
+    } else {
+      console.log(`✅ Manual webhook push completed.`);
     }
-    console.log(`✅ Manual webhook push completed.`);
     displayWebhookStatus(); // Refresh after manual push
   });
   
@@ -210,9 +210,8 @@ client.once(Events.ClientReady, async c => {
     }
   }
   
+  // Hiển thị trạng thái ngay khi khởi động
   displayWebhookStatus();
-  
-  console.log(`\n${WHITE}--- [ GAME MODULES ] ---${NC}`);
   console.log(`🎲 ${CYAN}Tài Xỉu:${NC}   ${NEON_GREEN}READY${NC}`);
   console.log(`🔤 ${CYAN}Nối Từ:${NC}    ${NEON_GREEN}READY${NC}`);
   console.log(`🎰 ${CYAN}Slot Mach:${NC} ${NEON_GREEN}READY${NC}`);
