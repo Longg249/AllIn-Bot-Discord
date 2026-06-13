@@ -57,6 +57,17 @@ client.once(Events.ClientReady, async c => {
   const topPlayersResult = await getTopPlayers(1);
   const { commands } = require('./deploy-commands');
 
+  // --- Get Public IP for Webhook Guidance ---
+  let publicIp = 'Unknown';
+  try {
+    const response = await fetch('https://api.ipify.org?format=json');
+    const data = await response.json();
+    publicIp = data.ip;
+  } catch (e) {
+    publicIp = 'Check your connection';
+  }
+  const webhookUrl = `http://${publicIp}:${process.env.WEBHOOK_PORT || 3000}/webhook/github`;
+
   // console.clear();
   console.log(`${NEON_PINK}╔════════════════════════════════════════════════════════════╗${NC}`);
   console.log(`${NEON_PINK}║${NC}        ${CYAN}🚀 ALLIN BOT SERVER - STARTUP SUCCESSFUL          ${NEON_PINK}║${NC}`);
@@ -71,6 +82,7 @@ client.once(Events.ClientReady, async c => {
   console.log(`🤖 ${CYAN}AI Engine:${NC} ${NEON_GREEN}LOADED (Gemini AI)${NC}`);
   console.log(`⏰ ${CYAN}Reminders:${NC} ${NEON_GREEN}ACTIVE (30s interval)${NC}`);
   console.log(`🌐 ${CYAN}Webhooks:${NC}  ${NEON_GREEN}LISTENING (Port 3000)${NC}`);
+  console.log(`🔗 ${CYAN}GitHub Hook:${NC} ${WHITE}${webhookUrl}${NC}`);
   
   // Trigger manual webhook push on startup
   console.log(`🔄 ${CYAN}Webhook:${NC}  ${NEON_GREEN}Triggering manual update...${NC}`);
