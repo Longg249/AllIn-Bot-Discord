@@ -13,6 +13,7 @@ Tất cả các thay đổi quan trọng đối với dự án này sẽ đượ
 - **PM2 Support:** Thêm `cron_restart` vào `ecosystem.config.js` để PM2 tự động restart bot mỗi 12 giờ.
 - **GitHub Notifier:** Bot tích hợp sẵn khả năng nhận Webhook từ GitHub và gửi thông báo Embed chi tiết vào Discord.
 - **Auto-Config Webhook:** Bot tự động lấy IP công khai khi khởi động và cập nhật Payload URL lên GitHub Webhook (yêu cầu GITHUB_TOKEN).
+- **Smee.io Integration:** Hỗ trợ nhận Webhook qua URL cố định của Smee, giúp hệ thống hoạt động ổn định trên cả máy có IP động mà không cần mở port.
 - **IP Detection:** Hiển thị địa chỉ IP và Payload URL gợi ý ngay trong Terminal khi khởi động.
 
 ### Changed
