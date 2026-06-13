@@ -9,10 +9,12 @@ const axios = require('axios');
  */
 async function handleGithubPush(client, payload, channelId) {
   try {
-    console.log(`📡 GitHub Webhook received for repo: ${payload?.repository?.full_name}`);
+    const repoName = payload?.repository?.full_name || 'Unknown Repo';
+    console.log(`📡 [GitHub Notifier] processing push for: ${repoName}`);
+    console.log(`📡 [GitHub Notifier] target channel: ${channelId}`);
     
     if (!payload || !payload.commits || payload.commits.length === 0) {
-      console.log('ℹ️ GitHub Webhook: No commits in payload, skipping.');
+      console.log('ℹ️ [GitHub Notifier] No commits found in payload. Skipping.');
       return;
     }
 
@@ -20,18 +22,23 @@ async function handleGithubPush(client, payload, channelId) {
     const branch = (payload.ref || '').replace('refs/heads/', '') || 'unknown';
     const pusher = payload.pusher?.name || payload.sender?.login || 'Unknown';
     const commits = payload.commits;
+    console.log(`📝 [GitHub Notifier] Found ${commits.length} commits by ${pusher} on ${branch}`);
+
     const compareUrl = payload.compare || payload.repository?.html_url;
     const token = process.env.GITHUB_TOKEN;
 
     const latestCommit = commits[commits.length - 1];
-    if (!latestCommit) return;
+    if (!latestCommit) {
+      console.log('⚠️ [GitHub Notifier] Latest commit is null. Skipping.');
+      return;
+    }
 
     const shortHash = (latestCommit.id || '').substring(0, 7) || '???????';
     const message = (latestCommit.message || 'No commit message').split('\n')[0];
     const body = (latestCommit.message || '').split('\n').slice(1).join('\n').trim();
 
     const embed = new EmbedBuilder()
-      .setColor('#2dba4e') // GitHub Green
+      .setColor('#2dba4e')
       .setAuthor({ 
         name: `${pusher} pushed to ${repo} [${branch}]`, 
         iconURL: payload.sender?.avatar_url,
@@ -42,8 +49,6 @@ async function handleGithubPush(client, payload, channelId) {
       .setTimestamp();
 
     let description = '';
-    
-    // Summary for multiple commits
     if (commits.length > 1) {
       description += `**Summary of ${commits.length} commits:**\n`;
       commits.slice(0, -1).forEach(c => {
@@ -59,8 +64,8 @@ async function handleGithubPush(client, payload, channelId) {
     if (body) description += `> *${body.length > 500 ? body.substring(0, 500) + '...' : body}*\n`;
     description += '\n';
 
-    // Fetch Diff/Patch if Token is available
     if (token && latestCommit.id) {
+      console.log(`🔍 [GitHub Notifier] Fetching diff for ${shortHash}...`);
       try {
         const { data: commitData } = await axios.get(
           `https://api.github.com/repos/${repo}/commits/${latestCommit.id}`,
@@ -85,7 +90,7 @@ async function handleGithubPush(client, payload, channelId) {
           description += `**Code Changes:**\n\`\`\`diff\n${diffPreview}\n${diffLines.length > 10 ? '...' : ''}\n\`\`\`\n`;
         }
       } catch (e) {
-        console.warn(`⚠️ Could not fetch commit diff for ${shortHash}:`, e.message);
+        console.warn(`⚠️ [GitHub Notifier] Could not fetch diff for ${shortHash}:`, e.message);
       }
     }
 
@@ -100,18 +105,20 @@ async function handleGithubPush(client, payload, channelId) {
     }
 
     embed.setDescription(description.substring(0, 4096));
-
     const content = `🔨 **New Push to ${repo}**\n👤 **${pusher}** pushed ${commits.length} commit${commits.length > 1 ? 's' : ''} to \`${branch}\`\n📝 Latest: *${message}*`;
 
+    console.log(`📡 [GitHub Notifier] Fetching Discord channel ${channelId}...`);
     const channel = await client.channels.fetch(channelId);
     if (channel) {
+      console.log(`📡 [GitHub Notifier] Sending message to ${channel.name || channelId}...`);
       await channel.send({ content, embeds: [embed] });
-      console.log(`✅ GitHub notification sent to channel ${channelId}`);
+      console.log(`✅ [GitHub Notifier] Notification sent successfully.`);
     } else {
-      console.error(`❌ Target channel ${channelId} not found`);
+      console.error(`❌ [GitHub Notifier] Channel ${channelId} not found.`);
     }
   } catch (error) {
-    console.error(`❌ Critical error in handleGithubPush:`, error);
+    console.error(`❌ [GitHub Notifier] Critical error:`, error.message);
+    if (error.stack) console.error(error.stack);
   }
 }
 
