@@ -160,6 +160,12 @@ client.once(Events.ClientReady, async c => {
   console.log(`⏰ ${CYAN}Reminders:${NC} ${NEON_GREEN}ACTIVE (30s interval)${NC}`);
   console.log(`🌐 ${CYAN}Webhooks:${NC}  ${NEON_GREEN}LISTENING (Port ${process.env.WEBHOOK_PORT || 3000})${NC}`);
   console.log(`🔗 ${CYAN}GitHub Hook:${NC} ${WHITE}${webhookUrl}${NC}`);
+  try {
+    const latestCommit = require('child_process').execSync('git log -1 --pretty=format:"%h - %s"').toString().trim();
+    console.log(`📝 ${CYAN}Latest Commit:${NC} ${WHITE}${latestCommit}${NC}`);
+  } catch (e) {
+    console.log(`📝 ${CYAN}Latest Commit:${NC} ${RED}FAILED TO RETRIEVE${NC}`);
+  }
   
   // Trigger manual webhook push on startup
   console.log(`🔄 ${CYAN}Webhook:${NC}  ${NEON_GREEN}Triggering manual update...${NC}`);
