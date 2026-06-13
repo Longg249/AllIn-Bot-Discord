@@ -1,5 +1,6 @@
 const http = require('http');
 const dataStore = require('./data-store');
+const githubNotifier = require('./github-notifier');
 
 module.exports = (client) => {
   const PORT = process.env.WEBHOOK_PORT || 3000;
@@ -12,7 +13,7 @@ module.exports = (client) => {
   const server = http.createServer(async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-GitHub-Event');
 
     if (req.method === 'OPTIONS') {
       res.writeHead(204);
@@ -45,8 +46,11 @@ module.exports = (client) => {
       return;
     }
 
-    const auth = (req.headers['authorization'] || '').trim();
-    if (SECRET) {
+    // Skip general secret auth for GitHub webhooks (GitHub uses its own signature or we use path-based trust)
+    const isGithub = path === '/webhook/github';
+    
+    if (!isGithub && SECRET) {
+      const auth = (req.headers['authorization'] || '').trim();
       const token = auth.startsWith('Bearer ') ? auth.slice(7).trim() : auth;
       if (token !== SECRET) {
         console.warn(`⚠️ Webhook auth failed: received "${token}", expected "${SECRET}"`);
@@ -64,6 +68,15 @@ module.exports = (client) => {
         const path = req.url.split('?')[0];
 
         switch (path) {
+          case '/webhook/github':
+            const githubEvent = req.headers['x-github-event'];
+            if (githubEvent === 'push') {
+              const targetChannel = process.env.GITHUB_CHANNEL || '1513126892587192370'; // Default to announce channel
+              await githubNotifier.handleGithubPush(client, data, targetChannel);
+            }
+            res.writeHead(200);
+            res.end(JSON.stringify({ ok: true }));
+            break;
           case '/webhook/news':
             await handleNewsWebhook(client, data, res);
             break;
