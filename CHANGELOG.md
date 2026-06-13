@@ -1,4 +1,4 @@
-# Changelog
+# Changelog 🚀
 
 Tất cả các thay đổi quan trọng đối với dự án này sẽ được ghi lại trong tệp này.
 
@@ -23,6 +23,7 @@ Tất cả các thay đổi quan trọng đối với dự án này sẽ đượ
 
 ### Fixed
 - Khắc phục lỗi tin tức/webhook thỉnh thoảng không cập nhật sau thời gian dài chạy liên tục bằng cơ chế restart định kỳ.
+- **Webhook Formatting:** Thêm nội dung plain-text vào thông báo GitHub để đảm bảo thông tin luôn hiển thị rõ ràng trên Discord ngay cả khi Embed gặp sự cố.
 
 ---
 *Cập nhật bởi Gemini CLI.*
