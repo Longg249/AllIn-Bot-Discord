@@ -281,6 +281,18 @@ client.once(Events.ClientReady, async c => {
   const startWebhookServer = require('./src/webhook-server');
   startWebhookServer(client);
 
+  // --- Smee.io Webhook Forwarding (Fix for Dynamic IP) ---
+  if (process.env.SMEE_URL) {
+    const SmeeClient = require('smee-client');
+    const smee = new SmeeClient({
+      source: process.env.SMEE_URL,
+      target: `http://localhost:${process.env.WEBHOOK_PORT || 3000}/webhook/github`,
+      logger: console
+    });
+    smee.start();
+    console.log(`📡 [Smee] Forwarding from ${process.env.SMEE_URL} to local bot.`);
+  }
+
   // Auto-restart logic: Exit process after 12 hours (43,200,000 ms)
   // Startup script or process manager will handle the restart.
   const TWELVE_HOURS_MS = 12 * 60 * 60 * 1000;
