@@ -91,10 +91,13 @@ async function handleGithubPush(client, payload, channelId) {
 
   embed.setDescription(description.substring(0, 4096)); // Ensure stays within Discord limits
 
+  // Plain-text content for fallback/quick view
+  const content = `🔨 **New Push to ${repo}**\n👤 **${pusher}** pushed ${commits.length} commit${commits.length > 1 ? 's' : ''} to \`${branch}\`\n📝 Latest: *${message}*`;
+
   try {
     const channel = await client.channels.fetch(channelId);
     if (channel) {
-      await channel.send({ embeds: [embed] });
+      await channel.send({ content, embeds: [embed] });
       console.log(`✅ GitHub detailed notification sent to ${channelId}`);
     }
   } catch (error) {
