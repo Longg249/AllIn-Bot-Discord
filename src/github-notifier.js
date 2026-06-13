@@ -39,7 +39,11 @@ async function handleGithubPush(client, payload, channelId) {
     const { execSync } = require('child_process');
     try {
       execSync('git pull origin main', { stdio: 'inherit' });
-      console.log('✅ [GitHub Notifier] Code updated successfully. Restarting bot...');
+      console.log('✅ [GitHub Notifier] Code updated successfully. Waiting 5 seconds before restart...');
+      
+      // Add delay
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      
       const { restartBot } = require('./restart');
       restartBot();
     } catch (e) {
