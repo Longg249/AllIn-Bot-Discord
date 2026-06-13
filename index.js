@@ -129,7 +129,7 @@ client.once(Events.ClientReady, async c => {
   console.log(`📂 ${CYAN}Database:${NC}  ${NEON_GREEN}CONNECTED (game.db, dictionary.db)${NC}`);
   console.log(`🤖 ${CYAN}AI Engine:${NC} ${NEON_GREEN}LOADED (Gemini AI)${NC}`);
   console.log(`⏰ ${CYAN}Reminders:${NC} ${NEON_GREEN}ACTIVE (30s interval)${NC}`);
-  console.log(`🌐 ${CYAN}Webhooks:${NC}  ${NEON_GREEN}LISTENING (Port 3000)${NC}`);
+  console.log(`🌐 ${CYAN}Webhooks:${NC}  ${NEON_GREEN}LISTENING (Port ${process.env.WEBHOOK_PORT || 3000})${NC}`);
   console.log(`🔗 ${CYAN}GitHub Hook:${NC} ${WHITE}${webhookUrl}${NC}`);
   
   // Trigger manual webhook push on startup
