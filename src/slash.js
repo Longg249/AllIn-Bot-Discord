@@ -6,11 +6,13 @@ const scavengeGame = require('./scavenge');
 const ai = require('./ai');
 const lookup = require('./lookup');
 const reminders = require('./reminders');
+const terminalUI = require('./terminal-ui');
 
 const NOITU_CHANNELS = ['1512801317586866186', '1512855412100300900'];
 const BANK_CHANNEL = '1513092507804635136';
 const OU_DEDICATED = ['1513076471797776435', '1513076573954117632', '1513076691839488030'];
 const FINANCE_CHANNEL = '1513082616444616754';
+const SCAVENGE_CATEGORY = '1513076471797776435'; // Adjust as needed
 
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 
@@ -19,6 +21,10 @@ const slashHandler = async (interaction, { turnTimers, clearTimer, setTimer }) =
 
   try {
     switch (commandName) {
+      case 'terminal':
+        await terminalUI.handleTerminalCommand(interaction);
+        break;
+
       case 'help':
         await handleHelp(interaction);
         break;

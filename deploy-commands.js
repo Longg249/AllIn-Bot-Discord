@@ -78,6 +78,9 @@ const commands = [
 
   // 🤖 AI & Utils
   new SlashCommandBuilder()
+    .setName('terminal')
+    .setDescription('💻 Mở giao diện Terminal quản lý bot'),
+  new SlashCommandBuilder()
     .setName('help')
     .setDescription('📖 Xem danh sách lệnh của bot'),
   new SlashCommandBuilder()
