@@ -1,6 +1,7 @@
 const { EmbedBuilder } = require('discord.js');
 const axios = require('axios');
 const { execSync } = require('child_process');
+const { logUpdate } = require('./logger');
 
 /**
  * Handle GitHub Push Event Webhook
@@ -11,7 +12,7 @@ const { execSync } = require('child_process');
 async function handleGithubPush(client, payload, channelId) {
   try {
     // Debug: Log payload structure
-    console.log(`📡 [GitHub Notifier] Payload Keys: ${Object.keys(payload || {}).join(', ')}`);
+    logUpdate(`📡 [GitHub Notifier] Payload Keys: ${Object.keys(payload || {}).join(', ')}`);
     
     // Handle nesting (Smee body or URL-encoded 'payload' field)
     if (payload && payload.body) {
@@ -27,13 +28,13 @@ async function handleGithubPush(client, payload, channelId) {
       try {
         payload = JSON.parse(payload);
       } catch (e) {
-        console.error('❌ [GitHub Notifier] Failed to parse string payload as JSON:', e.message);
+        logUpdate('❌ [GitHub Notifier] Failed to parse string payload as JSON: ' + e.message);
         return;
       }
     }
     
     if (!payload || !payload.commits || payload.commits.length === 0) {
-      console.log('ℹ️ [GitHub Notifier] No commits found in payload. Skipping.');
+      logUpdate('ℹ️ [GitHub Notifier] No commits found in payload. Skipping.');
       return;
     }
 
@@ -46,7 +47,7 @@ async function handleGithubPush(client, payload, channelId) {
     const token = process.env.GITHUB_TOKEN;
     const latestCommit = commits[commits.length - 1];
 
-    console.log(`📝 [GitHub Notifier] Found ${commits.length} commits by ${pusher} on ${branch}`);
+    logUpdate(`📝 [GitHub Notifier] Found ${commits.length} commits by ${pusher} on ${branch}`);
 
     const embed = new EmbedBuilder()
       .setColor('#2dba4e')
@@ -97,7 +98,7 @@ async function handleGithubPush(client, payload, channelId) {
           description += `**Code Changes:**\n\`\`\`diff\n${diffPreview}\n${diffLines.length > 10 ? '...' : ''}\n\`\`\`\n`;
         }
       } catch (e) {
-        console.warn(`⚠️ [GitHub Notifier] Could not fetch diff:`, e.message);
+        logUpdate(`⚠️ [GitHub Notifier] Could not fetch diff: ` + e.message);
       }
     }
 
@@ -107,31 +108,31 @@ async function handleGithubPush(client, payload, channelId) {
     const channel = await client.channels.fetch(channelId);
     if (channel) {
       await channel.send({ content, embeds: [embed] });
-      console.log(`✅ [GitHub Notifier] Notification sent successfully.`);
+      logUpdate(`✅ [GitHub Notifier] Notification sent successfully.`);
     }
 
     // 2. Perform Auto-Update and Restart (ONLY if Smee is active)
     if (process.env.SMEE_URL) {
-      console.log('🔄 [GitHub Notifier] Webhook with Smee detected. Starting update sequence...');
+      logUpdate('🔄 [GitHub Notifier] Webhook with Smee detected. Starting update sequence...');
       try {
-        console.log('⏳ [GitHub Notifier] Executing git pull...');
+        logUpdate('⏳ [GitHub Notifier] Executing git pull...');
         execSync('git pull origin main', { stdio: 'inherit' });
-        console.log('✅ [GitHub Notifier] git pull successful. Waiting 5 seconds before trigger restart...');
+        logUpdate('✅ [GitHub Notifier] git pull successful. Waiting 5 seconds before trigger restart...');
         
         await new Promise(resolve => setTimeout(resolve, 5000));
         
         const { restartBot } = require('./restart');
-        console.log('🚀 [GitHub Notifier] Calling restartBot()...');
+        logUpdate('🚀 [GitHub Notifier] Calling restartBot()...');
         restartBot();
       } catch (e) {
-        console.error('❌ [GitHub Notifier] Auto-update/Restart failed:', e.message);
+        logUpdate('❌ [GitHub Notifier] Auto-update/Restart failed: ' + e.message);
       }
     } else {
-        console.log('ℹ️ [GitHub Notifier] Smee not detected. Skipping auto-update via webhook.');
+        logUpdate('ℹ️ [GitHub Notifier] Smee not detected. Skipping auto-update via webhook.');
     }
 
   } catch (error) {
-    console.error(`❌ [GitHub Notifier] Critical error:`, error.message);
+    logUpdate('❌ [GitHub Notifier] Critical error: ' + error.message);
   }
 }
 
