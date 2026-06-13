@@ -183,6 +183,7 @@ client.once(Events.ClientReady, async c => {
     }
     displayWebhookStatus(); // Refresh after manual push
   });
+
   function displayWebhookStatus() {
     console.log(`\n${WHITE}--- [ WEBHOOK STATUS (Real-time) ] ---${NC}`);
     let latest = 0;
@@ -208,20 +209,6 @@ client.once(Events.ClientReady, async c => {
       console.log(`${WHITE}Last update:${NC} ${RED}Never${NC}`);
     }
   }
-
-  // Hiển thị trạng thái ngay khi khởi động
-  displayWebhookStatus();
-  // Hiển thị trạng thái ngay khi khởi động
-  displayWebhookStatus();
-  console.log(`🎲 ${CYAN}Tài Xỉu:${NC}   ${NEON_GREEN}READY${NC}`);
-  console.log(`🔤 ${CYAN}Nối Từ:${NC}    ${NEON_GREEN}READY${NC}`);
-  console.log(`🎰 ${CYAN}Slot Mach:${NC} ${NEON_GREEN}READY${NC}`);
-  console.log(`🎒 ${CYAN}Scavenger:${NC} ${NEON_GREEN}READY (${scavengerCount} items loaded)${NC}`);
-  
-  console.log(`\n${WHITE}--- [ BOT STATISTICS ] ---${NC}`);
-  console.log(`⌨️  ${CYAN}Commands:${NC}  ${NEON_GREEN}${commands.length} Slash Commands registered${NC}`);
-  console.log(`🏆 ${CYAN}Economy:${NC}   ${NEON_GREEN}Active (Richest: ${topPlayersResult[0]?.username || 'N/A'})${NC}`);
-  console.log(`${NEON_PINK}──────────────────────────────────────────────────────────────${NC}`);
 
   // Register slash commands on startup
   const { deployCommands } = require('./deploy-commands');
