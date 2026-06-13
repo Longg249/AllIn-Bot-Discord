@@ -1,14 +1,12 @@
 const axios = require('axios');
 
 /**
- * Tự động cập nhật Webhook trên GitHub khi IP thay đổi
- * @param {string} publicIp IP công khai mới của Bot
+ * Tự động cập nhật Webhook trên GitHub khi IP hoặc URL thay đổi
+ * @param {string} targetUrl URL Webhook mới của Bot (Smee hoặc IP)
  */
-async function autoConfigWebhook(publicIp) {
+async function autoConfigWebhook(targetUrl) {
   const token = process.env.GITHUB_TOKEN;
   const repo = process.env.GITHUB_REPO || 'Longg249/AllIn-Bot-Discord';
-  const port = process.env.WEBHOOK_PORT || 3000;
-  const newUrl = `http://${publicIp}:${port}/webhook/github`;
 
   if (!token) {
     console.log('ℹ️ [GitHub] GITHUB_TOKEN không tồn tại. Bỏ qua tự động cấu hình Webhook.');
@@ -16,6 +14,7 @@ async function autoConfigWebhook(publicIp) {
   }
 
   console.log(`🔄 [GitHub] Đang kiểm tra cấu hình Webhook cho ${repo}...`);
+  console.log(`📡 [GitHub] Mục tiêu: ${targetUrl}`);
 
   const headers = {
     'Authorization': `token ${token}`,
@@ -27,35 +26,36 @@ async function autoConfigWebhook(publicIp) {
     // 1. Lấy danh sách Webhooks hiện có
     const { data: hooks } = await axios.get(`https://api.github.com/repos/${repo}/hooks`, { headers });
 
-    // 2. Tìm Webhook của bot (dựa trên đường dẫn /webhook/github)
-    const botHook = hooks.find(h => h.config.url.includes('/webhook/github'));
+    // 2. Tìm Webhook của bot (dựa trên đường dẫn /webhook/github hoặc smee.io)
+    // Nếu dùng Smee, URL config trên GitHub sẽ chính là SMEE_URL
+    const botHook = hooks.find(h => h.config.url.includes('/webhook/github') || h.config.url.includes('smee.io'));
 
     if (botHook) {
       // 3. Nếu tìm thấy, kiểm tra xem URL có khác không
-      if (botHook.config.url !== newUrl) {
-        console.log(`🌐 [GitHub] IP thay đổi! Cập nhật Webhook: ${botHook.config.url} -> ${newUrl}`);
+      if (botHook.config.url !== targetUrl) {
+        console.log(`🌐 [GitHub] Cấu hình thay đổi! Cập nhật Webhook: ${botHook.config.url} -> ${targetUrl}`);
         
         await axios.patch(`https://api.github.com/repos/${repo}/hooks/${botHook.id}`, {
           config: {
             ...botHook.config,
-            url: newUrl,
+            url: targetUrl,
             content_type: 'json'
           }
         }, { headers });
 
         console.log('✅ [GitHub] Cập nhật Webhook thành công!');
       } else {
-        console.log('✅ [GitHub] Webhook đã đúng địa chỉ IP. Không cần cập nhật.');
+        console.log('✅ [GitHub] Webhook đã đúng địa chỉ. Không cần cập nhật.');
       }
     } else {
-      // 4. Nếu không tìm thấy, tạo mới (tùy chọn)
+      // 4. Nếu không tìm thấy, tạo mới
       console.log('➕ [GitHub] Không tìm thấy Webhook phù hợp. Đang tạo mới...');
       await axios.post(`https://api.github.com/repos/${repo}/hooks`, {
         name: 'web',
         active: true,
         events: ['push'],
         config: {
-          url: newUrl,
+          url: targetUrl,
           content_type: 'json',
           insecure_ssl: '1'
         }

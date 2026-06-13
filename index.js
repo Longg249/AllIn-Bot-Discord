@@ -131,11 +131,11 @@ client.once(Events.ClientReady, async c => {
   } catch (e) {
     publicIp = 'Check your connection';
   }
-  const webhookUrl = `http://${publicIp}:${process.env.WEBHOOK_PORT || 3000}/webhook/github`;
+  const webhookUrl = process.env.SMEE_URL || `http://${publicIp}:${process.env.WEBHOOK_PORT || 3000}/webhook/github`;
 
   // --- Auto-config GitHub Webhook if GITHUB_TOKEN exists ---
-  if (publicIp !== 'Unknown' && publicIp !== 'Check your connection') {
-    autoConfigWebhook(publicIp).catch(err => console.error('❌ GitHub auto-config failed:', err.message));
+  if (webhookUrl && !webhookUrl.includes('Unknown') && !webhookUrl.includes('Check your connection')) {
+    autoConfigWebhook(webhookUrl).catch(err => console.error('❌ GitHub auto-config failed:', err.message));
   }
 
   // console.clear();
