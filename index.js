@@ -60,7 +60,25 @@ try {
     process.exit(1);
   }
 }
-// 4. Update check removed - handled via webhook trigger
+// 4. In-process restart mechanism
+function restartBot() {
+  console.log('🔄 [System] Restarting bot...');
+  const { spawn } = require('child_process');
+  
+  // Relaunch the process
+  const child = spawn(process.argv[0], process.argv.slice(1), {
+    detached: true,
+    stdio: 'inherit'
+  });
+  
+  child.unref();
+  process.exit(0);
+}
+
+// 5. Update/Restart hook triggered by GitHub Webhook
+// This function will be called in src/github-notifier.js
+module.exports = { restartBot };
+
 // -----------------------------------------------------------
 
 const { Client, GatewayIntentBits, Events } = require('discord.js');
