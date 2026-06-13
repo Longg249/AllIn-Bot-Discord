@@ -47,11 +47,13 @@ npm install
 ```
 
 ### 3. Cấu Hình
-Tạo file `.env` từ mẫu `.env.example`:
+Để bot hoạt động, bạn cần cấu hình các biến môi trường trong file `.env`. 
+Vui lòng xem hướng dẫn chi tiết tại: [SETUP_ENV.md](./SETUP_ENV.md)
+
+Hoặc tạo nhanh file `.env` với các biến cơ bản sau:
 ```env
 DISCORD_TOKEN=Token_của_bạn
 CLIENT_ID=ID_của_bot
-GEMINI_API_KEY=Key_Gemini_AI (nếu dùng /ask)
 ```
 
 ### 4. Khởi Chạy
