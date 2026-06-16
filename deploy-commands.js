@@ -216,6 +216,67 @@ const commands = [
     .addSubcommand(sub =>
       sub.setName('upgrade')
         .setDescription('Nâng cấp sức chứa kho')),
+  // 🎣 Fishing
+  new SlashCommandBuilder()
+    .setName('fishing')
+    .setDescription('🎣 Câu cá')
+    .addSubcommand(sub =>
+      sub.setName('cast')
+        .setDescription('Thả câu câu cá')
+        .addStringOption(opt =>
+          opt.setName('spot')
+            .setDescription('Chọn địa điểm câu')
+            .setRequired(true)
+            .addChoices(
+              { name: '🏞️ Ao Làng (Free)', value: 'pond' },
+              { name: '🌊 Sông (500$)', value: 'river' },
+              { name: '🏖️ Hồ Lớn (2000$)', value: 'lake' },
+              { name: '🌅 Đại Dương (5000$)', value: 'ocean' },
+              { name: '🌀 Vực Sâu (15000$)', value: 'abyss' }
+            )))
+    .addSubcommand(sub =>
+      sub.setName('sell')
+        .setDescription('Bán cá trong giỏ')
+        .addStringOption(opt =>
+          opt.setName('item')
+            .setDescription('Số thứ tự hoặc "all"')
+            .setRequired(false)))
+    .addSubcommand(sub =>
+      sub.setName('inventory')
+        .setDescription('Xem giỏ cá'))
+    .addSubcommand(sub =>
+      sub.setName('stats')
+        .setDescription('Xem thông tin câu cá'))
+    .addSubcommand(sub =>
+      sub.setName('shop')
+        .setDescription('Cửa hàng dụng cụ câu cá'))
+    .addSubcommand(sub =>
+      sub.setName('buyrod')
+        .setDescription('Mua cần câu')
+        .addStringOption(opt =>
+          opt.setName('rod')
+            .setDescription('Chọn cần câu')
+            .setRequired(true)
+            .addChoices(
+              { name: '🎋 Cần Bamboo (Free)', value: 'bamboo' },
+              { name: '🎣 Cần Sợi Thủy Tinh (5,000$)', value: 'fiber' },
+              { name: '⚡ Cần Carbon (25,000$)', value: 'carbon' },
+              { name: '💠 Cần Titanium (100,000$)', value: 'titanium' },
+              { name: '👑 Cần Master (500,000$)', value: 'master' }
+            )))
+    .addSubcommand(sub =>
+      sub.setName('buybait')
+        .setDescription('Mua mồi câu')
+        .addStringOption(opt =>
+          opt.setName('bait')
+            .setDescription('Chọn mồi câu')
+            .setRequired(true)
+            .addChoices(
+              { name: '🪱 Giun Đất (100$)', value: 'earthworm' },
+              { name: '🦐 Tôm (500$)', value: 'shrimp' },
+              { name: '✨ Mồi Cao Cấp (2,000$)', value: 'premium' },
+              { name: '🌟 Mồi Vàng (10,000$)', value: 'golden' }
+            ))),
 ].map(cmd => cmd.toJSON());
 
 async function deployCommands() {

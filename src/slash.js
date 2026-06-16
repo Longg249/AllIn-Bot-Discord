@@ -3,6 +3,7 @@ const noituGame = require('./games/noitu');
 const overUnderGame = require('./games/overUnder');
 const dataStore = require('./data-store');
 const scavengeGame = require('./scavenge');
+const fishingGame = require('./games/fishing');
 const ai = require('./ai');
 const lookup = require('./lookup');
 const reminders = require('./reminders');
@@ -173,6 +174,10 @@ const slashHandler = async (interaction, { turnTimers, clearTimer, setTimer }) =
         await interaction.deferReply();
         await handleGold(interaction);
         break;
+
+      case 'fishing':
+        await handleFishing(interaction);
+        break;
     }
   } catch (err) {
     console.error(`Slash command ${commandName} error:`, err.message);
@@ -214,12 +219,20 @@ async function handleHelp(interaction) {
     `- \`/xang\`: Xem giá xăng dầu Petrolimex.\n` +
     `- \`/tygia\`: Xem tỷ giá ngoại tệ.\n` +
     `- \`/webhook-status\`: Xem trạng thái webhook còn sống hay chết.\n\n` +
-    `🎒 **Lụm Rác Delta Force:**\n` +
-    `- \`/scavenge start map:<map>\`: Vào map lụm rác (5 phút, balo 20 ô).\n` +
-    `- \`/scavenge loot\`: Lụm món đồ tiếp theo.\n` +
-    `- \`/scavenge backpack\`: Xem balo.\n` +
-    `- \`/scavenge end\`: Kết thúc, đồ vào kho.\n\n` +
-    `💡 *Mẹo: Slash commands có gợi ý tự động, gõ \`/\` để bắt đầu!*`;
+     `🎒 **Lụm Rác Delta Force:**\n` +
+     `- \`/scavenge start map:<map>\`: Vào map lụm rác (5 phút, balo 20 ô).\n` +
+     `- \`/scavenge loot\`: Lụm món đồ tiếp theo.\n` +
+     `- \`/scavenge backpack\`: Xem balo.\n` +
+     `- \`/scavenge end\`: Kết thúc, đồ vào kho.\n\n` +
+     `🎣 **Câu Cá:**\n` +
+     `- \`/fishing cast <spot>\`: Thả câu tại địa điểm.\n` +
+     `- \`/fishing inventory\`: Xem giỏ cá.\n` +
+     `- \`/fishing sell <item/all>\`: Bán cá.\n` +
+     `- \`/fishing stats\`: Thông tin câu cá.\n` +
+     `- \`/fishing shop\`: Cửa hàng dụng cụ.\n` +
+     `- \`/fishing buyrod <tên>\`: Mua cần câu.\n` +
+     `- \`/fishing buybait <tên>\`: Mua mồi câu.\n\n` +
+     `💡 *Mẹo: Slash commands có gợi ý tự động, gõ \`/\` để bắt đầu!*`;
   await interaction.reply(helpMsg);
 }
 
@@ -844,6 +857,138 @@ async function handleSearch(interaction) {
   const query = interaction.options.getString('query');
   const result = await lookup.search(query);
   await interaction.editReply(result);
+}
+
+async function handleFishing(interaction) {
+  const sub = interaction.options.getSubcommand();
+
+  if (sub === 'cast') {
+    const spotId = interaction.options.getString('spot');
+    const spot = fishingGame.FISHING_SPOTS[spotId];
+    if (!spot) {
+      await interaction.reply({ content: '❌ Địa điểm không hợp lệ.', ephemeral: true });
+      return;
+    }
+
+    const p = await getUserProfile(interaction.user.id);
+    if (p && p.points < spot.entryFee) {
+      await interaction.reply({ content: `❌ Bạn cần \`${spot.entryFee.toLocaleString()} ${CURRENCY_NAME}\` để vào ${spot.emoji} ${spot.name}. Bạn có \`${(p.points || 0).toLocaleString()}\`.`, ephemeral: true });
+      return;
+    }
+    if (spot.entryFee > 0 && p) {
+      await addPoints(interaction.user.id, interaction.user.username, -spot.entryFee);
+    }
+
+    await interaction.deferReply();
+
+    fishingGame.initFishing(interaction.user.id);
+
+    const result = await fishingGame.cast(interaction.user.id, spotId);
+    if (result.error) {
+      await interaction.editReply({ content: `❌ ${result.error}` });
+      return;
+    }
+
+    if (result.escaped) {
+      await interaction.editReply({ content: `${spot.emoji} **${spot.name}**\n${result.message}\n⚡ ${'█'.repeat(result.stamina)}${'░'.repeat(result.maxStamina - result.stamina)} ${result.stamina}/${result.maxStamina}` });
+      return;
+    }
+
+    const staminaBar = '█'.repeat(result.stamina) + '░'.repeat(result.maxStamina - result.stamina);
+    await interaction.editReply({ content:
+      `${spot.emoji} **${spot.name}** — 🎣 **Cắn câu!**\n` +
+      `${result.message}\n` +
+      `⚡ ${staminaBar} ${result.stamina}/${result.maxStamina}\n` +
+      `💡 \`/fishing inventory\` để xem giỏ cá.`
+    });
+    return;
+  }
+
+  if (sub === 'inventory') {
+    const inv = fishingGame.formatInventory(interaction.user.id);
+    if (!inv) {
+      await interaction.reply({ content: '🎒 Giỏ cá trống. Dùng `/fishing cast` để đi câu!', ephemeral: true });
+      return;
+    }
+    await interaction.reply({ content: inv, ephemeral: true });
+    return;
+  }
+
+  if (sub === 'sell') {
+    const itemOpt = interaction.options.getString('item') || 'all';
+    if (itemOpt === 'all') {
+      const result = await fishingGame.sellAll(interaction.user.id);
+      if (result.error) {
+        await interaction.reply({ content: `❌ ${result.error}`, ephemeral: true });
+        return;
+      }
+      const valueStr = result.total > 0 ? `\`${result.total.toLocaleString()} ${CURRENCY_NAME}\`` : '`0đ` (toàn rác)';
+      await interaction.reply({ content: `💰 Đã bán **${result.count} con** được ${valueStr}.`, ephemeral: true });
+      return;
+    }
+    const index = parseInt(itemOpt) - 1;
+    if (isNaN(index)) {
+      await interaction.reply({ content: '❌ Chỉ số không hợp lệ. Dùng `/fishing inventory` xem số.', ephemeral: true });
+      return;
+    }
+    const result = fishingGame.sellOne(interaction.user.id, index);
+    if (result.error) {
+      await interaction.reply({ content: `❌ ${result.error}`, ephemeral: true });
+      return;
+    }
+    if (result.value > 0) {
+      await addPoints(interaction.user.id, interaction.user.username, result.value);
+    }
+    await interaction.reply({ content: `💰 Đã bán **${result.fish.emoji} ${result.fish.name}** được \`${result.value.toLocaleString()} ${CURRENCY_NAME}\`.`, ephemeral: true });
+    return;
+  }
+
+  if (sub === 'stats') {
+    fishingGame.initFishing(interaction.user.id);
+    const msg = fishingGame.formatStats(interaction.user.id);
+    await interaction.reply({ content: msg, ephemeral: true });
+    return;
+  }
+
+  if (sub === 'shop') {
+    const shop = fishingGame.getShop();
+    let msg = `🏪 **CỬA HÀNG DỤNG CỤ CÂU CÁ**\n\n`;
+    msg += `**🎋 CẦN CÂU:**\n`;
+    shop.rods.forEach(([id, rod]) => {
+      const costStr = rod.cost === 0 ? 'Miễn phí' : `\`${rod.cost.toLocaleString()} ${CURRENCY_NAME}\``;
+      msg += `${rod.emoji} **${rod.name}** — ${costStr}\n└ Tỉ lệ: x${rod.mult} | Tỉ lệ bắt: ${Math.floor(rod.catchRate * 100)}%\n`;
+    });
+    msg += `\n**🪱 MỒI CÂU:**\n`;
+    shop.baits.forEach(([id, bait]) => {
+      const costStr = bait.cost === 0 ? 'Miễn phí' : `\`${bait.cost.toLocaleString()} ${CURRENCY_NAME}\``;
+      msg += `${bait.emoji} **${bait.name}** — ${costStr}\n└ Hệ số: x${bait.mult}\n`;
+    });
+    msg += `\n💡 \`/fishing buyrod <tên>\` — Mua cần câu\n💡 \`/fishing buybait <tên>\` — Mua mồi câu`;
+    await interaction.reply({ content: msg, ephemeral: true });
+    return;
+  }
+
+  if (sub === 'buyrod') {
+    const rodId = interaction.options.getString('rod');
+    const result = await fishingGame.buyRod(interaction.user.id, rodId);
+    if (result.error) {
+      await interaction.reply({ content: `❌ ${result.error}`, ephemeral: true });
+      return;
+    }
+    await interaction.reply({ content: `✅ Đã mua ${result.rod.emoji} **${result.rod.name}**${result.cost > 0 ? ` — \`${result.cost.toLocaleString()} ${CURRENCY_NAME}\`` : ''}!`, ephemeral: true });
+    return;
+  }
+
+  if (sub === 'buybait') {
+    const baitId = interaction.options.getString('bait');
+    const result = await fishingGame.buyBait(interaction.user.id, baitId);
+    if (result.error) {
+      await interaction.reply({ content: `❌ ${result.error}`, ephemeral: true });
+      return;
+    }
+    await interaction.reply({ content: `✅ Đã mua ${result.bait.emoji} **${result.bait.name}**${result.cost > 0 ? ` — \`${result.cost.toLocaleString()} ${CURRENCY_NAME}\`` : ''}!`, ephemeral: true });
+    return;
+  }
 }
 
 module.exports = {

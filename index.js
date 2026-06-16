@@ -406,10 +406,18 @@ client.on(Events.MessageCreate, async message => {
        `- \`/ask\`: Hỏi trợ lý AI.\n` +
        `- \`/remind\`: Đặt nhắc nhở.\n` +
        `- \`/search\`: Tìm kiếm web.\n\n` +
-      `🎒 **Lụm Rác Delta Force:**\n` +
-      `- \`/scavenge start\`: Vào map lụm rác.\n` +
-      `- \`/storage view\`: Xem kho đồ.\n\n` +
-      `💡 *Dùng lệnh gạch chéo (/) để có gợi ý tự động!*`;
+       `🎒 **Lụm Rác Delta Force:**\n` +
+       `- \`/scavenge start\`: Vào map lụm rác.\n` +
+       `- \`/storage view\`: Xem kho đồ.\n\n` +
+       `🎣 **Câu Cá:**\n` +
+       `- \`/fishing cast <spot>\`: Thả câu câu cá.\n` +
+       `- \`/fishing inventory\`: Xem giỏ cá.\n` +
+       `- \`/fishing sell\`: Bán cá.\n` +
+       `- \`/fishing stats\`: Thông tin câu cá.\n` +
+       `- \`/fishing shop\`: Cửa hàng dụng cụ.\n` +
+       `- \`/fishing buyrod\`: Mua cần câu.\n` +
+       `- \`/fishing buybait\`: Mua mồi câu.\n\n` +
+       `💡 *Dùng lệnh gạch chéo (/) để có gợi ý tự động!*`;
     message.reply(helpMsg);
     return;
   }
