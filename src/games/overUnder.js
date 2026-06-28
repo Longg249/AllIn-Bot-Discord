@@ -1,5 +1,7 @@
-const { hasEnoughPoints, getUserProfile, addPoints, CURRENCY_NAME } = require('../database');
+const { hasEnoughPoints, getUserProfile, addPoints, getGameState, CURRENCY_NAME } = require('../database');
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+
+const DICE_EMOJIS = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
 
 const rollDice = () => {
   const dice = [
@@ -11,6 +13,8 @@ const rollDice = () => {
   const result = total >= 11 ? 'over' : 'under';
   return { dice, total, result };
 };
+
+const formatDiceEmojis = (dice) => dice.map(d => DICE_EMOJIS[d - 1]).join(' ');
 
 const userBets = new Map();
 const DEFAULT_BET = 1000;
@@ -43,51 +47,38 @@ function getBetButtons() {
   );
 }
 
-async function processBet(interactionOrUserId, betAmount, command, channelId, isInteraction = false) {
-  const userId = isInteraction ? interactionOrUserId.user.id : interactionOrUserId.id;
-  const username = isInteraction ? interactionOrUserId.user.username : interactionOrUserId.author.username;
-  const reply = isInteraction
-    ? (msg, ephemeral) => interactionOrUserId.reply({ content: msg, ephemeral: ephemeral || false })
-    : (msg) => interactionOrUserId.reply(msg);
-  const editReply = isInteraction
-    ? (msg) => interactionOrUserId.editReply({ content: msg, components: getBetButtons() })
-    : async (msg) => {
-        const m = await interactionOrUserId.reply('🎲 Đang lắc xí ngầu...');
-        await m.edit({ content: msg, components: getBetButtons() });
-      };
-
-  setUserBet(userId, channelId, betAmount);
-
+async function checkBalanceAndFund(userId, username, betAmount) {
   const enough = await hasEnoughPoints(userId, betAmount);
   if (!enough && betAmount > 0) {
     const p = await getUserProfile(userId);
     if (!p || (p.points === 0 && p.bank === 0 && p.loan === 0)) {
       await addPoints(userId, username, 1000);
-      await reply(`🎁 Bạn nhận được 1000 ${CURRENCY_NAME} khởi nghiệp! Hãy thử lại.`);
-      return;
+      return { ok: false, msg: `🎁 Bạn nhận được 1000 ${CURRENCY_NAME} khởi nghiệp! Hãy thử lại.` };
     }
-    await reply(`❌ Bạn không đủ tiền mặt (Hiện có: ${p ? p.points : 0} ${CURRENCY_NAME}). Dùng \`/withdraw\` để rút tiền hoặc \`/loan\` để vay.`);
+    return { ok: false, msg: `❌ Bạn không đủ tiền mặt (Hiện có: ${p ? p.points : 0} ${CURRENCY_NAME}).` };
+  }
+  return { ok: true };
+}
+
+async function executeBet(userId, username, betAmount, command, replyFn, editReplyFn) {
+  setUserBet(userId, 0, betAmount);
+
+  const check = await checkBalanceAndFund(userId, username, betAmount);
+  if (!check.ok) {
+    await replyFn(check.msg);
     return;
   }
 
-  await reply('🎲 Đang lắc xí ngầu...');
+  await replyFn('🎲 Đang lắc xí ngầu...');
   await new Promise(resolve => setTimeout(resolve, 800));
 
   const { dice, total, result } = rollDice();
   const isWin = (command === '!over' && result === 'over') || (command === '!under' && result === 'under');
 
-  const diceEmojis = dice.map(d => {
-    const emojis = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
-    return emojis[d - 1];
-  }).join(' ');
-
-  if (isWin) {
-    await addPoints(userId, username, betAmount);
-    await editReply(`🎲 Kết quả: **${diceEmojis}** = **${total}** (**${result.toUpperCase()}**)\n✅ Chúc mừng! Bạn đã thắng **${betAmount} ${CURRENCY_NAME}**.`);
-  } else {
-    await addPoints(userId, username, -betAmount);
-    await editReply(`🎲 Kết quả: **${diceEmojis}** = **${total}** (**${result.toUpperCase()}**)\n❌ Rất tiếc! Bạn đã thua **${betAmount} ${CURRENCY_NAME}**.`);
-  }
+  await addPoints(userId, username, isWin ? betAmount : -betAmount);
+  await editReplyFn(
+    `🎲 Kết quả: **${formatDiceEmojis(dice)}** = **${total}** (**${result.toUpperCase()}**)\n${isWin ? `✅ Chúc mừng! Bạn đã thắng **${betAmount} ${CURRENCY_NAME}**.` : `❌ Rất tiếc! Bạn đã thua **${betAmount} ${CURRENCY_NAME}**.`}`
+  );
 }
 
 module.exports = {
@@ -98,33 +89,31 @@ module.exports = {
         message.reply(`❌ Mức cược từ 100 đến 100,000 ${CURRENCY_NAME} và phải là bội số của 100.`);
         return true;
       }
-
-      await processBet(message, bet, command, message.channel.id, false);
+      await executeBet(
+        message.author.id, message.author.username, bet, command,
+        (msg) => message.reply(msg),
+        async (msg) => {
+          const m = await message.reply('🎲 Đang lắc xí ngầu...');
+          await m.edit({ content: msg, components: getBetButtons() });
+        }
+      );
       return true;
     }
     return false;
   },
 
   handleInteraction: async (interaction, data) => {
-    const userId = interaction.user.id;
-    const channelId = interaction.channelId;
     const [action, amountStr] = data.split('_');
-    const betAmount = parseInt(amountStr) || getUserBet(userId, channelId);
+    const betAmount = parseInt(amountStr) || getUserBet(interaction.user.id, interaction.channelId);
     const command = action === 'over' ? '!over' : '!under';
 
-    const enough = await hasEnoughPoints(userId, betAmount);
-    if (!enough && betAmount > 0) {
-      const p = await getUserProfile(userId);
-      if (!p || (p.points === 0 && p.bank === 0 && p.loan === 0)) {
-        await addPoints(userId, interaction.user.username, 1000);
-        await interaction.reply({ content: `🎁 Bạn nhận được 1000 ${CURRENCY_NAME} khởi nghiệp! Hãy thử lại.`, ephemeral: true });
-        return;
-      }
-      await interaction.reply({ content: `❌ Bạn không đủ tiền mặt (Hiện có: ${p ? p.points : 0} ${CURRENCY_NAME}).`, ephemeral: true });
+    const check = await checkBalanceAndFund(interaction.user.id, interaction.user.username, betAmount);
+    if (!check.ok) {
+      await interaction.reply({ content: check.msg, ephemeral: true });
       return;
     }
 
-    setUserBet(userId, channelId, betAmount);
+    setUserBet(interaction.user.id, interaction.channelId, betAmount);
 
     await interaction.reply('🎲 Đang lắc xí ngầu...');
     await new Promise(resolve => setTimeout(resolve, 800));
@@ -132,19 +121,16 @@ module.exports = {
     const { dice, total, result } = rollDice();
     const isWin = (command === '!over' && result === 'over') || (command === '!under' && result === 'under');
 
-    const diceEmojis = dice.map(d => {
-      const emojis = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
-      return emojis[d - 1];
-    }).join(' ');
-
-    const resultMsg = `🎲 Kết quả: **${diceEmojis}** = **${total}** (**${result.toUpperCase()}**)\n${isWin ? `✅ Chúc mừng! Bạn đã thắng **${betAmount} ${CURRENCY_NAME}**.` : `❌ Rất tiếc! Bạn đã thua **${betAmount} ${CURRENCY_NAME}**.`}`;
-    await interaction.editReply({ content: resultMsg, components: getBetButtons() });
+    await addPoints(interaction.user.id, interaction.user.username, isWin ? betAmount : -betAmount);
+    await interaction.editReply({
+      content: `🎲 Kết quả: **${formatDiceEmojis(dice)}** = **${total}** (**${result.toUpperCase()}**)\n${isWin ? `✅ Chúc mừng! Bạn đã thắng **${betAmount} ${CURRENCY_NAME}**.` : `❌ Rất tiếc! Bạn đã thua **${betAmount} ${CURRENCY_NAME}**.`}`,
+      components: getBetButtons(),
+    });
   },
 
   handleSlashBet: async (interaction, command) => {
     const bet = interaction.options.getInteger('amount');
     const channelId = interaction.channelId;
-    const { getGameState } = require('../database');
 
     const state = await getGameState(channelId);
     if (!state || !state.is_active || state.game_type !== 'over-under') {
@@ -157,33 +143,11 @@ module.exports = {
       return;
     }
 
-    setUserBet(interaction.user.id, channelId, bet);
-
-    const enough = await hasEnoughPoints(interaction.user.id, bet);
-    if (!enough && bet > 0) {
-      const p = await getUserProfile(interaction.user.id);
-      if (!p || (p.points === 0 && p.bank === 0 && p.loan === 0)) {
-        await addPoints(interaction.user.id, interaction.user.username, 1000);
-        await interaction.reply(`🎁 Bạn nhận được 1000 ${CURRENCY_NAME} khởi nghiệp! Hãy thử lại.`);
-        return;
-      }
-      await interaction.reply(`❌ Bạn không đủ tiền mặt (Hiện có: ${p ? p.points : 0} ${CURRENCY_NAME}).`);
-      return;
-    }
-
-    await interaction.reply('🎲 Đang lắc xí ngầu...');
-    await new Promise(resolve => setTimeout(resolve, 800));
-
-    const { dice, total, result } = rollDice();
-    const isWin = (command === '!over' && result === 'over') || (command === '!under' && result === 'under');
-
-    const diceEmojis = dice.map(d => {
-      const emojis = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
-      return emojis[d - 1];
-    }).join(' ');
-
-    const resultMsg = `🎲 Kết quả: **${diceEmojis}** = **${total}** (**${result.toUpperCase()}**)\n${isWin ? `✅ Chúc mừng! Bạn đã thắng **${bet} ${CURRENCY_NAME}**.` : `❌ Rất tiếc! Bạn đã thua **${bet} ${CURRENCY_NAME}**.`}`;
-    await interaction.editReply({ content: resultMsg, components: getBetButtons() });
+    await executeBet(
+      interaction.user.id, interaction.user.username, bet, command,
+      (msg, ephemeral) => interaction.reply({ content: msg, ephemeral }),
+      (msg) => interaction.editReply({ content: msg, components: getBetButtons() })
+    );
   },
 
   getBetButtons,

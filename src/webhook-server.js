@@ -1,6 +1,7 @@
 const http = require('http');
 const dataStore = require('./data-store');
 const githubNotifier = require('./github-notifier');
+const { CHANNELS } = require('./config');
 
 module.exports = (client) => {
   const PORT = process.env.WEBHOOK_PORT || 3000;
@@ -71,7 +72,7 @@ module.exports = (client) => {
           case '/webhook/github':
             const githubEvent = req.headers['x-github-event'];
             if (githubEvent === 'push') {
-              const targetChannel = process.env.GITHUB_CHANNEL || '1513126892587192370'; // Default to announce channel
+              const targetChannel = process.env.GITHUB_CHANNEL || CHANNELS.ANNOUNCE;
               await githubNotifier.handleGithubPush(client, data, targetChannel);
             }
             res.writeHead(200);
@@ -175,7 +176,7 @@ async function handleFinanceWebhook(client, data, res) {
   }
 
   try {
-    const target = channel || process.env.FINANCE_CHANNEL || '1513083153374249021';
+    const target = channel || process.env.FINANCE_CHANNEL || CHANNELS.FINANCE_PUSH;
     await sendToChannel(client, target, content);
     console.log('📊 Finance webhook processed');
     res.writeHead(200);
@@ -237,7 +238,7 @@ async function handleGoldWebhook(client, data, res) {
   dataStore.setGold(content);
 
   try {
-    const target = channel || process.env.GOLD_CHANNEL || '1513083153374249021';
+    const target = channel || process.env.GOLD_CHANNEL || CHANNELS.FINANCE_PUSH;
     await sendToChannel(client, target, content);
     console.log('🥇 Gold webhook processed');
     res.writeHead(200);

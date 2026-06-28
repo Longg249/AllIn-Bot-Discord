@@ -1,4 +1,4 @@
-const { getGameState, startGame, stopGame, getUserProfile, getTopPlayers, deposit, withdraw, takeLoan, payback, claimReward, subscribeNews, unsubscribeNews, addPoints, CURRENCY_NAME, CURRENCY_ICON } = require('./database');
+const { getGameState, startGame, stopGame, getUserProfile, getTopPlayers, deposit, withdraw, takeLoan, payback, claimReward, subscribeNews, unsubscribeNews, addPoints, CURRENCY_NAME, CURRENCY_ICON, initStorage, getStorage, getStorageItems, getStorageValue, sellItem, sellAllItems, upgradeStorage, applyUpgradeStorage } = require('./database');
 const noituGame = require('./games/noitu');
 const overUnderGame = require('./games/overUnder');
 const dataStore = require('./data-store');
@@ -7,12 +7,7 @@ const fishingGame = require('./games/fishing');
 const ai = require('./ai');
 const lookup = require('./lookup');
 const reminders = require('./reminders');
-
-const NOITU_CHANNELS = ['1512801317586866186', '1512855412100300900'];
-const BANK_CHANNEL = '1513092507804635136';
-const OU_DEDICATED = ['1513076471797776435', '1513076573954117632', '1513076691839488030'];
-const FINANCE_CHANNEL = '1513082616444616754';
-const SCAVENGE_CATEGORY = '1513076471797776435'; // Adjust as needed
+const { CHANNELS } = require('./config');
 
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 
@@ -88,7 +83,7 @@ const slashHandler = async (interaction, { turnTimers, clearTimer, setTimer }) =
         break;
 
       case 'crypto':
-        if (channelId !== FINANCE_CHANNEL) {
+        if (channelId !== CHANNELS.FINANCE_CMD) {
           await interaction.reply({ content: '❌ Lệnh này chỉ sử dụng được trong kênh Tài chính.', ephemeral: true });
           return;
         }
@@ -97,7 +92,7 @@ const slashHandler = async (interaction, { turnTimers, clearTimer, setTimer }) =
         break;
 
       case 'xang':
-        if (channelId !== FINANCE_CHANNEL) {
+        if (channelId !== CHANNELS.FINANCE_CMD) {
           await interaction.reply({ content: '❌ Lệnh này chỉ sử dụng được trong kênh Tài chính.', ephemeral: true });
           return;
         }
@@ -106,7 +101,7 @@ const slashHandler = async (interaction, { turnTimers, clearTimer, setTimer }) =
         break;
 
       case 'tygia':
-        if (channelId !== FINANCE_CHANNEL) {
+        if (channelId !== CHANNELS.FINANCE_CMD) {
           await interaction.reply({ content: '❌ Lệnh này chỉ sử dụng được trong kênh Tài chính.', ephemeral: true });
           return;
         }
@@ -115,7 +110,7 @@ const slashHandler = async (interaction, { turnTimers, clearTimer, setTimer }) =
         break;
 
       case 'over':
-        if (!OU_DEDICATED.includes(channelId)) {
+        if (!CHANNELS.OU_DEDICATED.includes(channelId)) {
           await interaction.reply({ content: '❌ Lệnh Tài Xỉu chỉ sử dụng được trong kênh chuyên dụng.', ephemeral: true });
           return;
         }
@@ -123,7 +118,7 @@ const slashHandler = async (interaction, { turnTimers, clearTimer, setTimer }) =
         break;
 
       case 'under':
-        if (!OU_DEDICATED.includes(channelId)) {
+        if (!CHANNELS.OU_DEDICATED.includes(channelId)) {
           await interaction.reply({ content: '❌ Lệnh Tài Xỉu chỉ sử dụng được trong kênh chuyên dụng.', ephemeral: true });
           return;
         }
@@ -167,7 +162,7 @@ const slashHandler = async (interaction, { turnTimers, clearTimer, setTimer }) =
         break;
 
       case 'gold':
-        if (channelId !== FINANCE_CHANNEL) {
+        if (channelId !== CHANNELS.FINANCE_CMD) {
           await interaction.reply({ content: '❌ Lệnh này chỉ sử dụng được trong kênh Tài chính.', ephemeral: true });
           return;
         }
@@ -238,7 +233,7 @@ async function handleHelp(interaction) {
 
 async function handleStart(interaction, gameType, { clearTimer }) {
   if (gameType === 'noitu') {
-    if (!NOITU_CHANNELS.includes(interaction.channelId)) {
+    if (!CHANNELS.NOITU.includes(interaction.channelId)) {
       await interaction.reply({ content: '❌ Trò chơi Nối Từ chỉ được phép chơi trong kênh chuyên dụng.', ephemeral: true });
       return;
     }
@@ -246,7 +241,7 @@ async function handleStart(interaction, gameType, { clearTimer }) {
     clearTimer(interaction.channelId);
     await interaction.reply('🎮 Trò chơi Nối Từ đã bắt đầu! Hãy nhập từ đầu tiên.');
   } else if (gameType === 'over-under' || gameType === 'taixiu') {
-    if (!OU_DEDICATED.includes(interaction.channelId)) {
+    if (!CHANNELS.OU_DEDICATED.includes(interaction.channelId)) {
       await interaction.reply({ content: '❌ Trò chơi Tài Xỉu chỉ được phép chơi trong kênh chuyên dụng.', ephemeral: true });
       return;
     }
@@ -261,8 +256,7 @@ async function handleStart(interaction, gameType, { clearTimer }) {
       `4. Người chơi tự chịu trách nhiệm về hành vi. Hãy chơi game văn minh.\n\n` +
       `🎮 **Cách chơi:** Gõ \`/over <số điểm>\` hoặc \`/under <số điểm>\` để đặt cược.\n` +
       `🖲️ Hoặc bấm nút bên dưới để đặt nhanh.`;
-    const overUnder = require('./games/overUnder');
-    await interaction.reply({ content: disclaimer, components: overUnder.getBetButtons() });
+    await interaction.reply({ content: disclaimer, components: overUnderGame.getBetButtons() });
   } else {
     await interaction.reply({ content: '❌ Trò chơi không hợp lệ.', ephemeral: true });
   }
@@ -405,7 +399,7 @@ async function handleBalance(interaction) {
 }
 
 async function handleDeposit(interaction) {
-  if (interaction.channelId !== BANK_CHANNEL) {
+  if (interaction.channelId !== CHANNELS.BANK) {
     await interaction.reply({ content: '❌ Lệnh này chỉ được sử dụng trong kênh Ngân hàng.', ephemeral: true });
     return;
   }
@@ -424,7 +418,7 @@ async function handleDeposit(interaction) {
 }
 
 async function handleWithdraw(interaction) {
-  if (interaction.channelId !== BANK_CHANNEL) {
+  if (interaction.channelId !== CHANNELS.BANK) {
     await interaction.reply({ content: '❌ Lệnh này chỉ được sử dụng trong kênh Ngân hàng.', ephemeral: true });
     return;
   }
@@ -443,7 +437,7 @@ async function handleWithdraw(interaction) {
 }
 
 async function handleLoan(interaction) {
-  if (interaction.channelId !== BANK_CHANNEL) {
+  if (interaction.channelId !== CHANNELS.BANK) {
     await interaction.reply({ content: '❌ Lệnh này chỉ được sử dụng trong kênh Ngân hàng.', ephemeral: true });
     return;
   }
@@ -476,7 +470,7 @@ async function handleLoan(interaction) {
 }
 
 async function handlePayback(interaction) {
-  if (interaction.channelId !== BANK_CHANNEL) {
+  if (interaction.channelId !== CHANNELS.BANK) {
     await interaction.reply({ content: '❌ Lệnh này chỉ được sử dụng trong kênh Ngân hàng.', ephemeral: true });
     return;
   }
@@ -540,7 +534,7 @@ async function handleTygia(interaction) {
 }
 
 async function handleScavenge(interaction) {
-  if (interaction.channel?.parentId !== SCAVENGE_CATEGORY) {
+  if (interaction.channel?.parentId !== CHANNELS.OU_DEDICATED[0]) {
     await interaction.reply({ content: '❌ Lệnh này chỉ sử dụng được trong khu vực Scavenger.', ephemeral: true });
     return;
   }
@@ -709,7 +703,6 @@ async function handleScavenge(interaction) {
 }
 
 async function handleStorage(interaction) {
-  const { initStorage, getStorage, getStorageItems, getStorageValue, sellItem, sellAllItems, getUserProfile, addPoints, upgradeStorage, applyUpgradeStorage } = require('./database');
   await initStorage(interaction.user.id);
 
   const sub = interaction.options.getSubcommand();

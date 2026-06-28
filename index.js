@@ -84,6 +84,8 @@ const ai = require('./src/ai');
 const lookup = require('./src/lookup');
 const reminders = require('./src/reminders');
 const { autoConfigWebhook } = require('./src/github-config');
+const { CHANNELS, TURN_TIME_MS } = require('./src/config');
+const { pushAll } = require('./webhook-pusher');
 
 require('dotenv').config();
 const client = new Client({
@@ -95,7 +97,6 @@ const client = new Client({
 });
 
 const turnTimers = {};
-const TURN_TIME_MS = 15000;
 
 const clearTimer = (channelId) => {
   if (turnTimers[channelId]) {
@@ -174,15 +175,8 @@ client.once(Events.ClientReady, async c => {
   
   // Trigger manual webhook push on startup
   console.log(`🔄 ${CYAN}Webhook:${NC}  ${NEON_GREEN}Triggering manual update...${NC}`);
-  const { exec } = require('child_process');
-  exec('node webhook-pusher.js --once', (error, stdout, stderr) => {
-    if (error) {
-      console.error(`❌ Manual webhook push failed: ${error.message}`);
-    } else {
-      console.log(`✅ Manual webhook push completed.`);
-    }
-    displayWebhookStatus(); // Refresh after manual push
-  });
+  pushAll().catch(e => console.error(`❌ Manual webhook push failed: ${e.message}`))
+    .finally(() => displayWebhookStatus());
 
   function displayWebhookStatus() {
     console.log(`\n${WHITE}--- [ WEBHOOK STATUS (Real-time) ] ---${NC}`);
@@ -217,20 +211,13 @@ client.once(Events.ClientReady, async c => {
   }
 
   // Auto-subscribe the specific news channel
-  const AUTO_NEWS_CHANNEL = '1513064877231702016';
-  await subscribeNews(AUTO_NEWS_CHANNEL);
+  await subscribeNews(CHANNELS.NEWS);
 
   // Auto-subscribe the specific finance channel
-  const AUTO_FINANCE_CHANNEL = '1513083153374249021';
-  await subscribeNews(AUTO_FINANCE_CHANNEL);
+  await subscribeNews(CHANNELS.FINANCE_PUSH);
 
   // Dedicated Over-Under Channels
-  const DEDICATED_OU_CHANNELS = [
-    '1513076471797776435',
-    '1513076573954117632',
-    '1513076691839488030'
-  ];
-  for (const channelId of DEDICATED_OU_CHANNELS) {
+  for (const channelId of CHANNELS.OU_DEDICATED) {
     await startGame(channelId, 'over-under');
     try {
       const channel = await client.channels.fetch(channelId);
@@ -245,7 +232,7 @@ client.once(Events.ClientReady, async c => {
 
   // Notify server that bot is online
   try {
-    const announceChannel = await client.channels.fetch('1513126892587192370');
+    const announceChannel = await client.channels.fetch(CHANNELS.ANNOUNCE);
     if (announceChannel) {
       const statusMsg = await announceChannel.send('🟢 **Bot Online** — khởi động xong');
 
@@ -302,7 +289,7 @@ client.once(Events.ClientReady, async c => {
 
   // Post bank command list to bank channel
   try {
-    const bankChannel = await client.channels.fetch('1513092507804635136');
+    const bankChannel = await client.channels.fetch(CHANNELS.BANK);
     if (bankChannel) {
       await bankChannel.send(
         `🏦 **NGÂN HÀNG ${CURRENCY_NAME}**\n\n` +
@@ -343,11 +330,7 @@ client.once(Events.ClientReady, async c => {
   // --- Cron: Tự động cập nhật dữ liệu tin tức/tỷ giá mỗi 1h ---
   setInterval(() => {
     console.log('🔄 [Cron] Triggering hourly data update...');
-    const { exec } = require('child_process');
-    exec('node webhook-pusher.js --once', (error, stdout, stderr) => {
-      if (error) console.error(`❌ Cron update failed: ${error.message}`);
-      else console.log('✅ Cron update completed.');
-    });
+    pushAll().catch(e => console.error(`❌ Cron update failed: ${e.message}`));
   }, 60 * 60 * 1000);
 
   // Auto-restart logic: Exit process after 12 hours (43,200,000 ms)

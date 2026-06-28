@@ -1,5 +1,5 @@
 const { isValidWord } = require('../api');
-const { updateGameState, isWordUsed, addPoints } = require('../database');
+const { updateGameState, isWordUsed, addPoints, CURRENCY_NAME } = require('../database');
 
 const isValidChain = (prevWord, nextWord) => {
   if (!prevWord) return true;
@@ -40,7 +40,7 @@ module.exports = {
           clearTimer(message.channel.id);
           setTimer(message.channel.id);
 
-          message.reply(`✅ "${content}" hợp lệ! +100 ${require('../database').CURRENCY_NAME}. Tiếp theo: bắt đầu bằng "${content.split(/\s+/).pop()}". Bạn có 15s.`);
+          message.reply(`✅ "${content}" hợp lệ! +100 ${CURRENCY_NAME}. Tiếp theo: bắt đầu bằng "${content.split(/\s+/).pop()}". Bạn có 15s.`);
         } else {
           message.reply(`❌ "${content}" không phải là một từ tiếng Việt hợp lệ.`);
         }

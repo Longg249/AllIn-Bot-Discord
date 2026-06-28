@@ -2,6 +2,7 @@ const axios = require('axios');
 const axiosRetry = require('axios-retry');
 const Parser = require('rss-parser');
 require('dotenv').config();
+const { CHANNELS } = require('./src/config');
 
 const parser = new Parser({
   timeout: 10000,
@@ -12,8 +13,6 @@ axiosRetry.default(axios, { retries: 2, retryDelay: axiosRetry.exponentialDelay 
 
 const WEBHOOK_BASE = process.env.WEBHOOK_URL || 'http://localhost:3000';
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || 'noitu-webhook-secret';
-const NEWS_CHANNEL = '1513064877231702016';
-const FINANCE_CHANNEL = '1513083153374249021';
 
 function authHeader() {
   return { Authorization: 'Bearer ' + WEBHOOK_SECRET };
@@ -102,7 +101,7 @@ async function pushAll() {
   if (news.length > 0) {
     const textNews = news.map(item => `• [${item.title}](<${item.link}>)`).join('\n');
     await push('/webhook/news', { 
-      channel: NEWS_CHANNEL, 
+      channel: CHANNELS.NEWS, 
       content: `📰 **TIN TỨC MỚI CẬP NHẬT**\n${textNews}` 
     });
   }
@@ -121,7 +120,7 @@ async function pushAll() {
   const combined = [exchange, crypto, fuel].filter(Boolean).join('\n\n');
   if (combined) {
     await push('/webhook/finance', { 
-      channel: FINANCE_CHANNEL, 
+      channel: CHANNELS.FINANCE_PUSH, 
       content: combined + '\n\n*🔔 Cập nhật tự động mỗi 2 giờ*' 
     });
   }
@@ -129,18 +128,19 @@ async function pushAll() {
   console.log('🏁 Chu kỳ hoàn tất.\n');
 }
 
-// ─── Khởi chạy ───
-const runOnce = process.argv.includes('--once');
-
-if (runOnce) {
-  pushAll().then(() => {
-    setTimeout(() => process.exit(0), 2000);
-  });
-} else {
-  const interval = parseInt(process.env.PUSH_INTERVAL || '7200000');
-  console.log(`🕐 Pusher đã khởi động. Tự động cập nhật sau mỗi ${interval / 60000} phút.`);
-  
-  // Chạy lần đầu sau 5 giây để ổn định
-  setTimeout(pushAll, 5000);
-  setInterval(pushAll, interval);
+// ─── CLI entry point ───
+if (require.main === module) {
+  const runOnce = process.argv.includes('--once');
+  if (runOnce) {
+    pushAll().then(() => {
+      setTimeout(() => process.exit(0), 2000);
+    });
+  } else {
+    const interval = parseInt(process.env.PUSH_INTERVAL || '7200000');
+    console.log(`🕐 Pusher đã khởi động. Tự động cập nhật sau mỗi ${interval / 60000} phút.`);
+    setTimeout(pushAll, 5000);
+    setInterval(pushAll, interval);
+  }
 }
+
+module.exports = { pushAll, push, fetchNews, fetchExchangeRate, fetchCrypto, fetchFuel };
