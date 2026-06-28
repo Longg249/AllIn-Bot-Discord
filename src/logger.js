@@ -5,16 +5,12 @@ const logDir = path.join(__dirname, '../logs');
 if (!fs.existsSync(logDir)) {
   fs.mkdirSync(logDir);
 }
-const logFile = path.join(logDir, 'bot-updates.log');
 
-/**
- * Ghi log vào file bot-updates.log
- * @param {string} message 
- */
+const stream = fs.createWriteStream(path.join(logDir, 'bot-updates.log'), { flags: 'a' });
+
 function logUpdate(message) {
   const timestamp = new Date().toLocaleString('vi-VN');
-  const entry = `[${timestamp}] ${message}\n`;
-  fs.appendFileSync(logFile, entry);
+  stream.write(`[${timestamp}] ${message}\n`);
   console.log(message);
 }
 

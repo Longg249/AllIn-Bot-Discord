@@ -2,172 +2,167 @@ const { REST, Routes, SlashCommandBuilder } = require('discord.js');
 require('dotenv').config();
 
 const commands = [
-  // 🎮 Games
   new SlashCommandBuilder()
     .setName('noitu')
-    .setDescription('🎮 Bắt đầu trò chơi Nối Từ'),
+    .setDescription('Bat dau tro choi Noi Tu'),
   new SlashCommandBuilder()
     .setName('taixiu')
-    .setDescription('🎲 Bắt đầu trò chơi Tài Xỉu'),
+    .setDescription('Bat dau tro choi Tai Xiu'),
   new SlashCommandBuilder()
     .setName('slot')
-    .setDescription('🎰 Chơi máy quay trái cây (Slot Machine)')
+    .setDescription('May quay trai cay (Slot Machine)')
     .addIntegerOption(option =>
       option.setName('bet')
-        .setDescription('Số tiền cược (tối thiểu 100)')
+        .setDescription('So tien cuoc (toi thieu 100)')
         .setRequired(true)),
   new SlashCommandBuilder()
     .setName('stop')
-    .setDescription('🏳️ Dừng trò chơi hiện tại'),
+    .setDescription('Dung tro choi hien tai'),
   new SlashCommandBuilder()
     .setName('over')
-    .setDescription('🎲 Đặt Tài (Tài Xỉu)')
+    .setDescription('Dat Tai (Tai Xiu)')
     .addIntegerOption(option =>
       option.setName('amount')
-        .setDescription('Số tiền cược')
+        .setDescription('So tien cuoc')
         .setRequired(true)),
   new SlashCommandBuilder()
     .setName('under')
-    .setDescription('🎲 Đặt Xỉu (Tài Xỉu)')
+    .setDescription('Dat Xiu (Tai Xiu)')
     .addIntegerOption(option =>
       option.setName('amount')
-        .setDescription('Số tiền cược')
+        .setDescription('So tien cuoc')
         .setRequired(true)),
 
-  // 💰 Economy
   new SlashCommandBuilder()
     .setName('profile')
-    .setDescription('👤 Xem số dư và hồ sơ cá nhân'),
+    .setDescription('Xem so du va ho so ca nhan'),
   new SlashCommandBuilder()
     .setName('bal')
-    .setDescription('💰 Xem số dư nhanh'),
+    .setDescription('Xem so du nhanh'),
   new SlashCommandBuilder()
     .setName('reward')
-    .setDescription('🎁 Nhận quà điểm miễn phí mỗi 4 giờ'),
+    .setDescription('Nhan qua diem mien phi moi 4 gio'),
   new SlashCommandBuilder()
     .setName('leaderboard')
-    .setDescription('🏆 Xem bảng xếp hạng đại gia'),
+    .setDescription('Xem bang xep hang dai gia'),
   new SlashCommandBuilder()
     .setName('deposit')
-    .setDescription('🏦 Gửi tiền vào ngân hàng')
+    .setDescription('Gui tien vao ngan hang')
     .addIntegerOption(option =>
       option.setName('amount')
-        .setDescription('Số tiền muốn gửi (bội số của 100)')
+        .setDescription('So tien muon gui (boi so cua 100)')
         .setRequired(true)),
   new SlashCommandBuilder()
     .setName('withdraw')
-    .setDescription('🏦 Rút tiền từ ngân hàng')
+    .setDescription('Rut tien tu ngan hang')
     .addIntegerOption(option =>
       option.setName('amount')
-        .setDescription('Số tiền muốn rút (bội số của 100)')
+        .setDescription('So tien muon rut (boi so cua 100)')
         .setRequired(true)),
   new SlashCommandBuilder()
     .setName('loan')
-    .setDescription('💸 Vay tiền từ ngân hàng (tối đa 5000)')
+    .setDescription('Vay tien tu ngan hang (toi da 5000)')
     .addIntegerOption(option =>
       option.setName('amount')
-        .setDescription('Số tiền muốn vay')
+        .setDescription('So tien muon vay')
         .setRequired(true)),
   new SlashCommandBuilder()
     .setName('payback')
-    .setDescription('💸 Trả nợ ngân hàng')
+    .setDescription('Tra no ngan hang')
     .addStringOption(option =>
       option.setName('amount')
-        .setDescription('Số tiền muốn trả hoặc "all"')
+        .setDescription('So tien muon tra hoac "all"')
         .setRequired(true)),
 
-  // 🤖 AI & Utils
   new SlashCommandBuilder()
     .setName('terminal')
-    .setDescription('💻 Mở giao diện Terminal quản lý bot'),
+    .setDescription('Mo giao dien Terminal quan ly bot'),
   new SlashCommandBuilder()
     .setName('help')
-    .setDescription('📖 Xem danh sách lệnh của bot'),
+    .setDescription('Xem danh sach lenh cua bot'),
   new SlashCommandBuilder()
     .setName('ask')
-    .setDescription('🤖 Hỏi trợ lý AI bất kỳ điều gì')
+    .setDescription('Hoi tro ly AI bat ky dieu gi')
     .addStringOption(option =>
       option.setName('question')
-        .setDescription('Câu hỏi của bạn')
+        .setDescription('Cau hoi cua ban')
         .setRequired(true)),
   new SlashCommandBuilder()
     .setName('saeed')
-    .setDescription('🦉 Trò chuyện với Saeed Ziaten (Fiery Owl)')
+    .setDescription('Truyen chuyen voi Saeed Ziaten (Fiery Owl)')
     .addStringOption(option =>
       option.setName('noidung')
-        .setDescription('Nội dung trò chuyện')
+        .setDescription('Noi dung truyen chuyen')
         .setRequired(true)),
   new SlashCommandBuilder()
     .setName('remind')
-    .setDescription('⏰ Đặt nhắc nhở')
+    .setDescription('Dat nhac nho')
     .addStringOption(option =>
       option.setName('time')
-        .setDescription('Thời gian (VD: 30m, 1h, 14:30)')
+        .setDescription('Thoi gian (VD: 30m, 1h, 14:30)')
         .setRequired(true))
     .addStringOption(option =>
       option.setName('message')
-        .setDescription('Nội dung nhắc nhở')
+        .setDescription('Noi dung nhac nho')
         .setRequired(true)),
   new SlashCommandBuilder()
     .setName('wiki')
-    .setDescription('📖 Tra cứu Wikipedia')
+    .setDescription('Tra cuu Wikipedia')
     .addStringOption(option =>
       option.setName('query')
-        .setDescription('Từ khóa tìm kiếm')
+        .setDescription('Tu khoa tim kiem')
         .setRequired(true)),
   new SlashCommandBuilder()
     .setName('define')
-    .setDescription('📖 Tra từ điển tiếng Anh')
+    .setDescription('Tra tu dien tieng Anh')
     .addStringOption(option =>
       option.setName('word')
-        .setDescription('Từ cần tra')
+        .setDescription('Tu can tra')
         .setRequired(true)),
   new SlashCommandBuilder()
     .setName('search')
-    .setDescription('🔍 Tìm kiếm thông tin trên web')
+    .setDescription('Tim kiem thong tin tren web')
     .addStringOption(option =>
       option.setName('query')
-        .setDescription('Từ khóa tìm kiếm')
+        .setDescription('Tu khoa tim kiem')
         .setRequired(true)),
 
-  // 📊 News & Market
   new SlashCommandBuilder()
     .setName('news')
-    .setDescription('📰 Đăng ký nhận tin tức hàng giờ')
+    .setDescription('Dang ky nhan tin tuc hang gio')
     .addStringOption(option =>
       option.setName('status')
-        .setDescription('Bật hoặc tắt')
+        .setDescription('Bat hoac tat')
         .setRequired(true)
         .addChoices(
-          { name: 'Bật (On)', value: 'on' },
-          { name: 'Tắt (Off)', value: 'off' }
+          { name: 'Bat (On)', value: 'on' },
+          { name: 'Tat (Off)', value: 'off' }
         )),
   new SlashCommandBuilder()
     .setName('crypto')
-    .setDescription('🪙 Xem giá tiền điện tử'),
+    .setDescription('Xem gia tien dien tu'),
   new SlashCommandBuilder()
     .setName('gold')
-    .setDescription('🟡 Xem giá vàng các loại'),
+    .setDescription('Xem gia vang cac loai'),
   new SlashCommandBuilder()
     .setName('xang')
-    .setDescription('⛽ Xem giá xăng dầu Petrolimex'),
+    .setDescription('Xem gia xang dau'),
   new SlashCommandBuilder()
     .setName('tygia')
-    .setDescription('💹 Xem tỷ giá ngoại tệ'),
+    .setDescription('Xem ty gia ngoai te'),
   new SlashCommandBuilder()
     .setName('webhook-status')
-    .setDescription('🌐 Xem trạng thái hoạt động của các webhook'),
+    .setDescription('Xem trang thai hoat dong cua cac webhook'),
 
-  // 🎒 Scavenger
   new SlashCommandBuilder()
     .setName('scavenge')
-    .setDescription('🎒 Lụm rác Delta Force')
+    .setDescription('Lum rac Delta Force')
     .addSubcommand(sub =>
       sub.setName('start')
-        .setDescription('Vào map lụm rác')
+        .setDescription('Vao map lum rac')
         .addStringOption(opt =>
           opt.setName('map')
-            .setDescription('Chọn map')
+            .setDescription('Chon map')
             .setRequired(true)
             .addChoices(
               { name: 'Zero Dam EZ (Free)', value: 'zeroDamEZ' },
@@ -177,124 +172,135 @@ const commands = [
             ))
         .addIntegerOption(opt =>
           opt.setName('time')
-            .setDescription('Thời gian (mặc định 5p)')
+            .setDescription('Thoi gian (mac dinh 5p)')
             .addChoices(
-              { name: '5 phút', value: 5 },
-              { name: '10 phút', value: 10 },
-              { name: '15 phút', value: 15 }
+              { name: '5 phut', value: 5 },
+              { name: '10 phut', value: 10 },
+              { name: '15 phut', value: 15 }
             )))
     .addSubcommand(sub =>
       sub.setName('loot')
-        .setDescription('Lụm món đồ tiếp theo'))
+        .setDescription('Lum mon do tiep theo'))
     .addSubcommand(sub =>
       sub.setName('backpack')
-        .setDescription('Xem balo hiện tại'))
+        .setDescription('Xem balo hien tai'))
     .addSubcommand(sub =>
       sub.setName('buyslots')
-        .setDescription('Mua thêm ô balo')
+        .setDescription('Mua them o balo')
         .addIntegerOption(opt =>
-          opt.setName('số_lượng')
-            .setDescription('Số lượng ô muốn mua')
+          opt.setName('so_luong')
+            .setDescription('So luong o muon mua')
             .setRequired(true)))
     .addSubcommand(sub =>
       sub.setName('end')
-        .setDescription('Kết thúc lụm rác và về kho')),
+        .setDescription('Ket thuc lum rac va ve kho')),
 
   new SlashCommandBuilder()
     .setName('storage')
-    .setDescription('📦 Quản lý kho đồ Scavenger')
+    .setDescription('Quan ly kho do Scavenger')
     .addSubcommand(sub =>
       sub.setName('view')
-        .setDescription('Xem danh sách đồ trong kho'))
+        .setDescription('Xem danh sach do trong kho'))
     .addSubcommand(sub =>
       sub.setName('sell')
-        .setDescription('Bán đồ trong kho')
+        .setDescription('Ban do trong kho')
         .addStringOption(opt =>
           opt.setName('item')
-            .setDescription('ID món đồ hoặc "all"')
+            .setDescription('ID mon do hoac "all"')
             .setRequired(true)))
     .addSubcommand(sub =>
       sub.setName('upgrade')
-        .setDescription('Nâng cấp sức chứa kho')),
-  // 🎣 Fishing
+        .setDescription('Nang cap suc chua kho')),
   new SlashCommandBuilder()
     .setName('fishing')
-    .setDescription('🎣 Câu cá')
+    .setDescription('Cau ca')
     .addSubcommand(sub =>
       sub.setName('cast')
-        .setDescription('Thả câu câu cá')
+        .setDescription('Tha cau cau ca')
         .addStringOption(opt =>
           opt.setName('spot')
-            .setDescription('Chọn địa điểm câu')
+            .setDescription('Chon dia diem cau')
             .setRequired(true)
             .addChoices(
-              { name: '🏞️ Ao Làng (Free)', value: 'pond' },
-              { name: '🌊 Sông (500$)', value: 'river' },
-              { name: '🏖️ Hồ Lớn (2000$)', value: 'lake' },
-              { name: '🌅 Đại Dương (5000$)', value: 'ocean' },
-              { name: '🌀 Vực Sâu (15000$)', value: 'abyss' }
+              { name: 'Ao Lang (Free)', value: 'pond' },
+              { name: 'Song (500$)', value: 'river' },
+              { name: 'Ho Lon (2000$)', value: 'lake' },
+              { name: 'Dai Duong (5000$)', value: 'ocean' },
+              { name: 'Vuc Sau (15000$)', value: 'abyss' }
             )))
     .addSubcommand(sub =>
       sub.setName('sell')
-        .setDescription('Bán cá trong giỏ')
+        .setDescription('Ban ca trong gio')
         .addStringOption(opt =>
           opt.setName('item')
-            .setDescription('Số thứ tự hoặc "all"')
+            .setDescription('So thu tu hoac "all"')
             .setRequired(false)))
     .addSubcommand(sub =>
       sub.setName('inventory')
-        .setDescription('Xem giỏ cá'))
+        .setDescription('Xem gio ca'))
     .addSubcommand(sub =>
       sub.setName('stats')
-        .setDescription('Xem thông tin câu cá'))
+        .setDescription('Xem thong tin cau ca'))
     .addSubcommand(sub =>
       sub.setName('shop')
-        .setDescription('Cửa hàng dụng cụ câu cá'))
+        .setDescription('Cua hang dung cu cau ca'))
     .addSubcommand(sub =>
       sub.setName('buyrod')
-        .setDescription('Mua cần câu')
+        .setDescription('Mua can cau')
         .addStringOption(opt =>
           opt.setName('rod')
-            .setDescription('Chọn cần câu')
+            .setDescription('Chon can cau')
             .setRequired(true)
             .addChoices(
-              { name: '🎋 Cần Bamboo (Free)', value: 'bamboo' },
-              { name: '🎣 Cần Sợi Thủy Tinh (5,000$)', value: 'fiber' },
-              { name: '⚡ Cần Carbon (25,000$)', value: 'carbon' },
-              { name: '💠 Cần Titanium (100,000$)', value: 'titanium' },
-              { name: '👑 Cần Master (500,000$)', value: 'master' }
+              { name: 'Can Bamboo (Free)', value: 'bamboo' },
+              { name: 'Can Soi Thuy Tinh (5,000$)', value: 'fiber' },
+              { name: 'Can Carbon (25,000$)', value: 'carbon' },
+              { name: 'Can Titanium (100,000$)', value: 'titanium' },
+              { name: 'Can Master (500,000$)', value: 'master' }
             )))
     .addSubcommand(sub =>
       sub.setName('buybait')
-        .setDescription('Mua mồi câu')
+        .setDescription('Mua moi cau')
         .addStringOption(opt =>
           opt.setName('bait')
-            .setDescription('Chọn mồi câu')
+            .setDescription('Chon moi cau')
             .setRequired(true)
             .addChoices(
-              { name: '🪱 Giun Đất (100$)', value: 'earthworm' },
-              { name: '🦐 Tôm (500$)', value: 'shrimp' },
-              { name: '✨ Mồi Cao Cấp (2,000$)', value: 'premium' },
-              { name: '🌟 Mồi Vàng (10,000$)', value: 'golden' }
+              { name: 'Giun Dat (100$)', value: 'earthworm' },
+              { name: 'Tom (500$)', value: 'shrimp' },
+              { name: 'Moi Cao Cap (2,000$)', value: 'premium' },
+              { name: 'Moi Vang (10,000$)', value: 'golden' }
             ))),
 ].map(cmd => cmd.toJSON());
 
+const RETRY_DELAY_MS = 3000;
+const MAX_RETRIES = 3;
+
 async function deployCommands() {
   if (!process.env.DISCORD_TOKEN || !process.env.CLIENT_ID) {
-    console.error('❌ Thiếu DISCORD_TOKEN hoặc CLIENT_ID trong .env');
-    return;
+    console.error('Thieu DISCORD_TOKEN hoac CLIENT_ID trong .env');
+    process.exit(1);
   }
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
-  try {
-    console.log(`Đang đăng ký ${commands.length} slash commands...`);
-    await rest.put(
-      Routes.applicationCommands(process.env.CLIENT_ID),
-      { body: commands },
-    );
-    console.log(`✅ Đã đăng ký thành công slash commands!`);
-  } catch (error) {
-    console.error('❌ Lỗi đăng ký commands:', error.message);
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      console.log(`Dang dang ky ${commands.length} slash commands (lan ${attempt}/${MAX_RETRIES})...`);
+      await rest.put(
+        Routes.applicationCommands(process.env.CLIENT_ID),
+        { body: commands },
+      );
+      console.log('Da dang ky thanh cong slash commands!');
+      return;
+    } catch (error) {
+      console.error(`Loi dang ky commands (lan ${attempt}):`, error.message);
+      if (attempt < MAX_RETRIES) {
+        console.log(`Thu lai sau ${RETRY_DELAY_MS / 1000}s...`);
+        await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
+      }
+    }
   }
+  console.error('That bai sau nhieu lan thu.');
+  process.exit(1);
 }
 
 if (require.main === module) {

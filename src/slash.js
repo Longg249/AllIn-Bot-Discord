@@ -9,7 +9,37 @@ const lookup = require('./lookup');
 const reminders = require('./reminders');
 const { CHANNELS } = require('./config');
 
+const slotGame = require('./games/slot');
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+
+function requireChannel(interaction, channelId, msg) {
+  if (interaction.channelId !== channelId) {
+    interaction.reply({ content: msg, ephemeral: true });
+    return false;
+  }
+  return true;
+}
+
+function requireChannelInList(interaction, channels, msg) {
+  if (!channels.includes(interaction.channelId)) {
+    interaction.reply({ content: msg, ephemeral: true });
+    return false;
+  }
+  return true;
+}
+
+const FINANCE_GETTERS = { crypto: 'getCrypto', xang: 'getFuel', tygia: 'getExchange' };
+const FINANCE_LABELS = { crypto: 'crypto', xang: 'giá xăng', tygia: 'tỷ giá' };
+
+async function handleFinanceData(interaction, getter) {
+  const { content, updatedAt, change } = dataStore[getter]();
+  const label = Object.keys(FINANCE_GETTERS).find(k => FINANCE_GETTERS[k] === getter);
+  if (!content) {
+    await interaction.editReply(`Chưa có dữ liệu ${FINANCE_LABELS[label]}. Hãy đợi webhook cập nhật.`);
+    return;
+  }
+  await interaction.editReply(`${content}${change}\nCập nhật: ${updatedAt.toLocaleString('vi-VN')}`);
+}
 
 const slashHandler = async (interaction, { turnTimers, clearTimer, setTimer }) => {
   const { commandName, options, channelId, user } = interaction;
@@ -85,27 +115,18 @@ const slashHandler = async (interaction, { turnTimers, clearTimer, setTimer }) =
       case 'crypto':
       case 'xang':
       case 'tygia':
-        if (channelId !== CHANNELS.FINANCE_CMD) {
-          await interaction.reply({ content: '❌ Lệnh này chỉ sử dụng được trong kênh Tài chính.', ephemeral: true });
-          return;
-        }
+        if (!requireChannel(interaction, CHANNELS.FINANCE_CMD, '❌ Lệnh này chỉ sử dụng được trong kênh Tài chính.')) return;
         await interaction.deferReply();
         await handleFinanceData(interaction, FINANCE_GETTERS[commandName]);
         break;
 
       case 'over':
-        if (!CHANNELS.OU_DEDICATED.includes(channelId)) {
-          await interaction.reply({ content: '❌ Lệnh Tài Xỉu chỉ sử dụng được trong kênh chuyên dụng.', ephemeral: true });
-          return;
-        }
+        if (!requireChannelInList(interaction, CHANNELS.OU_DEDICATED, '❌ Lệnh Tài Xỉu chỉ sử dụng được trong kênh chuyên dụng.')) return;
         await overUnderGame.handleSlashBet(interaction, '!over');
         break;
 
       case 'under':
-        if (!CHANNELS.OU_DEDICATED.includes(channelId)) {
-          await interaction.reply({ content: '❌ Lệnh Tài Xỉu chỉ sử dụng được trong kênh chuyên dụng.', ephemeral: true });
-          return;
-        }
+        if (!requireChannelInList(interaction, CHANNELS.OU_DEDICATED, '❌ Lệnh Tài Xỉu chỉ sử dụng được trong kênh chuyên dụng.')) return;
         await overUnderGame.handleSlashBet(interaction, '!under');
         break;
 
@@ -146,10 +167,7 @@ const slashHandler = async (interaction, { turnTimers, clearTimer, setTimer }) =
         break;
 
       case 'gold':
-        if (channelId !== CHANNELS.FINANCE_CMD) {
-          await interaction.reply({ content: '❌ Lệnh này chỉ sử dụng được trong kênh Tài chính.', ephemeral: true });
-          return;
-        }
+        if (!requireChannel(interaction, CHANNELS.FINANCE_CMD, '❌ Lệnh này chỉ sử dụng được trong kênh Tài chính.')) return;
         await interaction.deferReply();
         await handleGold(interaction);
         break;
@@ -217,18 +235,12 @@ async function handleHelp(interaction) {
 
 async function handleStart(interaction, gameType, { clearTimer }) {
   if (gameType === 'noitu') {
-    if (!CHANNELS.NOITU.includes(interaction.channelId)) {
-      await interaction.reply({ content: '❌ Trò chơi Nối Từ chỉ được phép chơi trong kênh chuyên dụng.', ephemeral: true });
-      return;
-    }
+    if (!requireChannelInList(interaction, CHANNELS.NOITU, '❌ Trò chơi Nối Từ chỉ được phép chơi trong kênh chuyên dụng.')) return;
     await startGame(interaction.channelId, 'noitu');
     clearTimer(interaction.channelId);
     await interaction.reply('🎮 Trò chơi Nối Từ đã bắt đầu! Hãy nhập từ đầu tiên.');
   } else if (gameType === 'over-under' || gameType === 'taixiu') {
-    if (!CHANNELS.OU_DEDICATED.includes(interaction.channelId)) {
-      await interaction.reply({ content: '❌ Trò chơi Tài Xỉu chỉ được phép chơi trong kênh chuyên dụng.', ephemeral: true });
-      return;
-    }
+    if (!requireChannelInList(interaction, CHANNELS.OU_DEDICATED, '❌ Trò chơi Tài Xỉu chỉ được phép chơi trong kênh chuyên dụng.')) return;
     await startGame(interaction.channelId, 'over-under');
     clearTimer(interaction.channelId);
     const disclaimer =
@@ -291,7 +303,6 @@ async function handleSlot(interaction) {
     return;
   }
 
-  const slotGame = require('./games/slot');
   const { result, win, multiplier, title, color } = slotGame.play(bet);
   
   await addPoints(interaction.user.id, interaction.user.username, win - bet);
@@ -312,7 +323,6 @@ async function handleSlotInteraction(interaction, data) {
       return;
     }
 
-    const slotGame = require('./games/slot');
     const { result, win, multiplier, title, color } = slotGame.play(bet);
     
     await addPoints(interaction.user.id, interaction.user.username, win - bet);
@@ -383,10 +393,7 @@ async function handleBalance(interaction) {
 }
 
 async function handleDeposit(interaction) {
-  if (interaction.channelId !== CHANNELS.BANK) {
-    await interaction.reply({ content: '❌ Lệnh này chỉ được sử dụng trong kênh Ngân hàng.', ephemeral: true });
-    return;
-  }
+  if (!requireChannel(interaction, CHANNELS.BANK, '❌ Lệnh này chỉ được sử dụng trong kênh Ngân hàng.')) return;
   const amount = interaction.options.getInteger('amount');
   if (amount < 100 || amount % 100 !== 0) {
     await interaction.reply({ content: `❌ Số tiền gửi phải là bội số của 100 ${CURRENCY_NAME}.`, ephemeral: true });
@@ -402,10 +409,7 @@ async function handleDeposit(interaction) {
 }
 
 async function handleWithdraw(interaction) {
-  if (interaction.channelId !== CHANNELS.BANK) {
-    await interaction.reply({ content: '❌ Lệnh này chỉ được sử dụng trong kênh Ngân hàng.', ephemeral: true });
-    return;
-  }
+  if (!requireChannel(interaction, CHANNELS.BANK, '❌ Lệnh này chỉ được sử dụng trong kênh Ngân hàng.')) return;
   const amount = interaction.options.getInteger('amount');
   if (amount < 100 || amount % 100 !== 0) {
     await interaction.reply({ content: `❌ Số tiền rút phải là bội số của 100 ${CURRENCY_NAME}.`, ephemeral: true });
@@ -421,10 +425,7 @@ async function handleWithdraw(interaction) {
 }
 
 async function handleLoan(interaction) {
-  if (interaction.channelId !== CHANNELS.BANK) {
-    await interaction.reply({ content: '❌ Lệnh này chỉ được sử dụng trong kênh Ngân hàng.', ephemeral: true });
-    return;
-  }
+  if (!requireChannel(interaction, CHANNELS.BANK, '❌ Lệnh này chỉ được sử dụng trong kênh Ngân hàng.')) return;
   const amount = interaction.options.getInteger('amount');
   const LOAN_LIMIT = 5000;
   const LOAN_COOLDOWN = 3600000;
@@ -454,10 +455,7 @@ async function handleLoan(interaction) {
 }
 
 async function handlePayback(interaction) {
-  if (interaction.channelId !== CHANNELS.BANK) {
-    await interaction.reply({ content: '❌ Lệnh này chỉ được sử dụng trong kênh Ngân hàng.', ephemeral: true });
-    return;
-  }
+  if (!requireChannel(interaction, CHANNELS.BANK, '❌ Lệnh này chỉ được sử dụng trong kênh Ngân hàng.')) return;
   const p = await getUserProfile(interaction.user.id);
   if (!p || p.loan <= 0) {
     await interaction.reply({ content: '❌ Bạn không có khoản nợ nào cần trả.', ephemeral: true });

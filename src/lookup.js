@@ -1,26 +1,15 @@
-const https = require('https');
-
-const fetch = (url) => new Promise((resolve, reject) => {
-  https.get(url, (res) => {
-    let data = '';
-    res.on('data', chunk => data += chunk);
-    res.on('end', () => {
-      try { resolve(JSON.parse(data)); } catch (e) { reject(e); }
-    });
-  }).on('error', reject);
-});
+const axios = require('axios');
 
 module.exports = {
   wiki: async (query) => {
     try {
-      const url = `https://vi.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`;
-      const data = await fetch(url);
+      const { data } = await axios.get(`https://vi.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`);
       if (data.type === 'disambiguation') {
         return `📚 **${query}** có nhiều nghĩa:\n${data.extract || 'Xem chi tiết tại trang Wikipedia.'}`;
       }
       if (data.extract) {
         const ext = data.extract.length > 1500 ? data.extract.slice(0, 1500) + '...' : data.extract;
-        return `📖 **${data.title}**\n${ext}\n🔗 ${data.content_urls?.desktop?.page || url}`;
+        return `📖 **${data.title}**\n${ext}\n🔗 ${data.content_urls?.desktop?.page || `https://vi.wikipedia.org/wiki/${encodeURIComponent(query)}`}`;
       }
       return `❌ Không tìm thấy kết quả cho "${query}".`;
     } catch (err) {
@@ -30,7 +19,7 @@ module.exports = {
 
   define: async (word) => {
     try {
-      const data = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`);
+      const { data } = await axios.get(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`);
       if (!Array.isArray(data) || data.length === 0) {
         return `❌ Không tìm thấy từ "${word}".`;
       }
@@ -53,8 +42,7 @@ module.exports = {
 
   search: async (query) => {
     try {
-      const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
-      const data = await fetch(url);
+      const { data } = await axios.get(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`);
 
       let msg = `🔍 **Kết quả tìm kiếm cho:** ${query}\n`;
 
