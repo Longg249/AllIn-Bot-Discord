@@ -1,80 +1,69 @@
-// --- Startup: Git Repair, Auto Update & Environment Check ---
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled Rejection:', reason);
+});
+
 const { execSync } = require('child_process');
 const fs = require('fs');
 
-// 1. Auto-repair Git & Force Update
 if (!fs.existsSync('.git')) {
   try {
-    console.log('🔧 [System] Initializing Git repository...');
+    console.log('[Startup] Initializing Git repository...');
     execSync('git init && git remote add origin https://github.com/Longg249/AllIn-Bot-Discord.git && git fetch origin main && git reset --hard origin/main', { stdio: 'inherit' });
-    console.log('✅ [System] Git initialized successfully.');
+    console.log('[Startup] Git initialized.');
   } catch (e) {
-    console.error('❌ [System] Git initialization failed:', e.message);
+    console.error('[Startup] Git init failed:', e.message);
   }
 } else {
-  // Force sync with GitHub to fix any local corruption/conflicts
   try {
-    console.log('🔄 [System] Force syncing with GitHub...');
+    console.log('[Startup] Syncing with GitHub...');
     execSync('git fetch origin main && git reset --hard origin/main', { stdio: 'inherit' });
-    console.log('✅ [System] GitHub sync successful.');
+    console.log('[Startup] GitHub sync done.');
   } catch (e) {
-    console.error('⚠️ [System] GitHub sync failed. Attempting to continue anyway.');
+    console.error('[Startup] GitHub sync failed:', e.message);
   }
 }
 
-// 2. Self-install missing dependencies
 try {
   require('smee-client');
   require('axios');
 } catch (e) {
-  console.log('📦 [System] Missing dependencies detected. Installing...');
+  console.log('[Startup] Missing dependencies. Installing...');
   try {
     execSync('npm install', { stdio: 'inherit' });
-    console.log('✅ [System] Dependencies installed. Please restart the bot.');
+    console.log('[Startup] Dependencies installed. Please restart.');
     process.exit(0);
   } catch (err) {
-    console.error('❌ [System] Failed to install dependencies automatically.');
+    console.error('[Startup] Failed to install dependencies.');
   }
 }
 
-// 3. Check for sqlite3 compatibility
 try {
   require('sqlite3');
-  console.log('✅ [System] SQLite3 is compatible.');
+  console.log('[Startup] SQLite3 OK.');
 } catch (e) {
-  console.log('⚠️ [System] SQLite3 mismatch detected. Repairing...');
+  console.log('[Startup] SQLite3 mismatch. Repairing...');
   try {
-    const cmd = process.env.TERMUX_VERSION 
+    const cmd = process.env.TERMUX_VERSION
       ? 'npm install sqlite3@5.1.7 --build-from-source --no-save'
       : 'npm install sqlite3@5.1.7 --no-save';
     execSync(cmd, { stdio: 'inherit' });
-    console.log('✅ [System] Repair successful!');
+    console.log('[Startup] Repair successful.');
   } catch (err) {
-    console.error('❌ [System] Repair failed.');
-    if (process.env.TERMUX_VERSION) {
-      console.error('👉 Vui lòng chạy lệnh này trong Termux: pkg install -y build-essential binutils python clang make');
-
-    } else {
-      console.error('👉 Please install build tools (build-essential, python, etc.)');
-    }
+    console.error('[Startup] Repair failed.');
     process.exit(1);
   }
 }
-// 4. In-process restart mechanism
-const { restartBot } = require('./src/restart');
 
-// 5. Update/Restart hook triggered by GitHub Webhook
-// This function will be called in src/github-notifier.js
+const { restartBot, onCleanup, gracefulShutdown } = require('./src/restart');
+
 module.exports = { restartBot };
 
-// -----------------------------------------------------------
-
 const { Client, GatewayIntentBits, Events } = require('discord.js');
-const { 
-  getGameState, startGame, stopGame, getUserProfile, getTopPlayers, 
-  deposit, withdraw, takeLoan, payback, claimReward, 
-  subscribeNews, unsubscribeNews, getNewsSubscriptions, 
-  addPoints, getDFItemCount, CURRENCY_NAME, CURRENCY_ICON 
+const {
+  getGameState, startGame, stopGame, getUserProfile, getTopPlayers,
+  deposit, withdraw, takeLoan, payback, claimReward,
+  subscribeNews, unsubscribeNews, getNewsSubscriptions,
+  addPoints, getDFItemCount, CURRENCY_NAME, CURRENCY_ICON
 } = require('./src/database');
 
 const noituGame = require('./src/games/noitu');
@@ -110,7 +99,7 @@ const setTimer = (channelId) => {
   turnTimers[channelId] = setTimeout(async () => {
     try {
       const channel = await client.channels.fetch(channelId);
-      if (channel) channel.send(`⏰ Hết thời gian! Trò chơi đã kết thúc.`);
+      if (channel) channel.send(`Het thoi gian! Tro choi da ket thuc.`);
       await stopGame(channelId);
     } catch (e) {
       console.error('Timer error:', e.message);
@@ -118,149 +107,122 @@ const setTimer = (channelId) => {
   }, TURN_TIME_MS);
 };
 
+const timers = [];
+
+function addTimer(fn, ms) {
+  const id = setInterval(fn, ms);
+  timers.push(id);
+  return id;
+}
+
+function addTimeout(fn, ms) {
+  const id = setTimeout(fn, ms);
+  timers.push(id);
+  return id;
+}
+
 client.once(Events.ClientReady, async c => {
-  // --- Terminal Monitor Integration ---
-  const NEON_PINK = '\x1b[38;2;255;0;255m';
   const CYAN = '\x1b[38;2;0;255;255m';
   const NEON_GREEN = '\x1b[38;2;57;255;20m';
   const WHITE = '\x1b[37m';
   const RED = '\x1b[31m';
   const NC = '\x1b[0m';
+  const NEON_PINK = '\x1b[38;2;255;0;255m';
 
   const scavengerCount = await getDFItemCount();
   const topPlayersResult = await getTopPlayers(1);
   const { commands } = require('./deploy-commands');
 
-  // --- Get Public IP for Webhook Guidance ---
   let publicIp = 'Unknown';
   try {
     const response = await fetch('https://api.ipify.org?format=json');
     const data = await response.json();
     publicIp = data.ip;
   } catch (e) {
-    publicIp = 'Check your connection';
+    publicIp = 'Unavailable';
   }
+
   const webhookUrl = process.env.SMEE_URL || `http://${publicIp}:${process.env.WEBHOOK_PORT || 3000}/webhook/github`;
 
-  // --- Auto-config GitHub Webhook if GITHUB_TOKEN exists ---
-  if (webhookUrl && !webhookUrl.includes('Unknown') && !webhookUrl.includes('Check your connection')) {
-    autoConfigWebhook(webhookUrl).catch(err => console.error('❌ GitHub auto-config failed:', err.message));
+  if (webhookUrl && !webhookUrl.includes('Unknown') && !webhookUrl.includes('Unavailable')) {
+    autoConfigWebhook(webhookUrl).catch(err => console.error('GitHub auto-config failed:', err.message));
   }
 
-  // console.clear();
-  console.log(`${NEON_PINK}╔════════════════════════════════════════════════════════════╗${NC}`);
-  console.log(`${NEON_PINK}║${NC}        ${CYAN}🚀 ALLIN BOT SERVER - STARTUP SUCCESSFUL          ${NEON_PINK}║${NC}`);
-  console.log(`${NEON_PINK}╚════════════════════════════════════════════════════════════╝${NC}`);
-  console.log(`${CYAN}🕒 Time:${NC}    ${new Date().toLocaleString('vi-VN')} (${Intl.DateTimeFormat().resolvedOptions().timeZone})`);
-  console.log(`${CYAN}🤖 Account:${NC} ${NEON_GREEN}${c.user.tag}${NC}`);
-  console.log(`${CYAN}🛡️ Status:${NC}   ${NEON_GREEN}ONLINE & READY${NC}`);
-  console.log(`${CYAN}🌍 Server IP:${NC} ${WHITE}${publicIp}${NC}`);
-  
-  console.log(`\n${WHITE}--- [ CORE INFRASTRUCTURE ] ---${NC}`);
-  console.log(`📂 ${CYAN}Database:${NC} ${NEON_GREEN}CONNECTED${NC}   | 🤖 ${CYAN}AI Engine:${NC} ${NEON_GREEN}LOADED${NC}`);
-  console.log(`🌐 ${CYAN}Webhooks:${NC} ${NEON_GREEN}PORT ${process.env.WEBHOOK_PORT || 3000}${NC}  | ⏰ ${CYAN}Reminders:${NC} ${NEON_GREEN}ACTIVE${NC}`);
-  console.log(`🔗 ${CYAN}GitHub Hook:${NC} ${WHITE}${webhookUrl}${NC}`);
-  try {
-    const latestCommit = require('child_process').execSync('git log -1 --pretty=format:"%h - %s"').toString().trim();
-    console.log(`📝 ${CYAN}Latest Commit:${NC} ${WHITE}${latestCommit}${NC}`);
-  } catch (e) {
-    console.log(`📝 ${CYAN}Latest Commit:${NC} ${RED}FAILED${NC}`);
-  }
-  
-  console.log(`\n${WHITE}--- [ GAMES & ECONOMY ] ---${NC}`);
-  console.log(`🎲 ${CYAN}Tài Xỉu:${NC}   ${NEON_GREEN}READY${NC}      | 🔤 ${CYAN}Nối Từ:${NC}    ${NEON_GREEN}READY${NC}`);
-  console.log(`🎰 ${CYAN}Slot Mach:${NC} ${NEON_GREEN}READY${NC}      | 🎒 ${CYAN}Scavenger:${NC} ${NEON_GREEN}READY (${scavengerCount})${NC}`);
-  console.log(`⌨️  ${CYAN}Commands:${NC}  ${NEON_GREEN}${commands.length} REG${NC}    | 🏆 ${CYAN}Economy:${NC}   ${NEON_GREEN}${topPlayersResult[0]?.username || 'N/A'}${NC}`);
-  console.log(`${NEON_PINK}──────────────────────────────────────────────────────────────${NC}`);
-  
+  console.log(`[Startup] Bot online: ${c.user.tag} | IP: ${publicIp} | Commands: ${commands.length}`);
+
   function displayWebhookStatus() {
-    console.log(`\n${WHITE}--- [ WEBHOOK STATUS (Real-time) ] ---${NC}`);
     let latest = 0;
-    const statusItems = [
+    const items = [
       { label: 'News', getter: 'getNews' },
       { label: 'Crypto', getter: 'getCrypto' },
       { label: 'Exchange', getter: 'getExchange' },
       { label: 'Fuel', getter: 'getFuel' },
     ];
-
-    statusItems.forEach(s => {
+    items.forEach(s => {
       const data = dataStore[s.getter]();
-      const icon = data.updatedAt ? '✅' : '❌';
-      console.log(`${CYAN}${s.label}:${NC} ${icon}`);
       if (data.updatedAt && data.updatedAt.getTime() > latest) {
         latest = data.updatedAt.getTime();
       }
     });
-
-    if (latest > 0) {
-      console.log(`${WHITE}Last update:${NC} ${new Date(latest).toLocaleString('vi-VN')}`);
-    } else {
-      console.log(`${WHITE}Last update:${NC} ${RED}Never${NC}`);
-    }
+    console.log(`[Webhook] Last update: ${latest > 0 ? new Date(latest).toLocaleString('vi-VN') : 'Never'}`);
   }
 
-  // Register slash commands on startup
   const { deployCommands } = require('./deploy-commands');
   if (typeof deployCommands === 'function') {
-    deployCommands().catch(e => console.error('❌ Failed to register slash commands:', e.message));
+    deployCommands().catch(e => console.error('Failed to register slash commands:', e.message));
   }
 
-  // Auto-subscribe the specific news channel
   await subscribeNews(CHANNELS.NEWS);
-
-  // Auto-subscribe the specific finance channel
   await subscribeNews(CHANNELS.FINANCE_PUSH);
 
-  // Dedicated Over-Under Channels
   for (const channelId of CHANNELS.OU_DEDICATED) {
     await startGame(channelId, 'over-under');
     try {
       const channel = await client.channels.fetch(channelId);
       if (channel) {
         const { getBetButtons } = require('./src/games/overUnder');
-        await channel.send({ content: `🎲 **Kênh chuyên dụng Tài Xỉu đã sẵn sàng!**\n⚠️ Game chỉ vì mục đích giải trí.\nGõ \`/over <số điểm>\` hoặc \`/under <số điểm>\` để đặt cược.\n🖲️ Hoặc bấm nút bên dưới để đặt nhanh.`, components: getBetButtons() });
+        await channel.send({
+          content: `Keh chuyen dung Tai Xiu da san sang!\n/over <so diem> hoac /under <so diem> de dat cuoc.`,
+          components: getBetButtons()
+        });
       }
     } catch (e) {
       console.error(`Failed to notify OU channel ${channelId}:`, e.message);
     }
   }
 
-  // Notify server that bot is online
   try {
     const announceChannel = await client.channels.fetch(CHANNELS.ANNOUNCE);
     if (announceChannel) {
-      const statusMsg = await announceChannel.send('🟢 **Bot Online** — khởi động xong');
+      const statusMsg = await announceChannel.send('Bot Online — khoi dong xong');
 
-      // Heartbeat every 10 minutes — edit status message
-      setInterval(async () => {
+      addTimer(async () => {
         try {
           const uptime = Math.floor(process.uptime() / 60);
           const hours = Math.floor(uptime / 60);
           const mins = uptime % 60;
-          const timeStr = hours > 0 ? `${hours}h${mins}p` : `${mins}p`;
-          await statusMsg.edit(`🟢 **Bot Online** — ${timeStr} ✅`);
+          await statusMsg.edit(`Bot Online — ${hours > 0 ? `${hours}h${mins}p` : `${mins}p`}`);
         } catch (e) {
           console.error('Heartbeat failed:', e.message);
         }
       }, 600000);
 
-      // Webhook status update every 30 minutes
       let webhookStatusMsg = null;
-      setInterval(async () => {
+      addTimer(async () => {
         try {
           const sources = [
-            { label: '📰 Tin tức', getter: 'getNews' },
-            { label: '🪙 Crypto', getter: 'getCrypto' },
-            { label: '⛽ Xăng dầu', getter: 'getFuel' },
-            { label: '💸 Tỷ giá', getter: 'getExchange' },
+            { label: 'Tin tuc', getter: 'getNews' },
+            { label: 'Crypto', getter: 'getCrypto' },
+            { label: 'Xang dau', getter: 'getFuel' },
+            { label: 'Ty gia', getter: 'getExchange' },
           ];
-          let msg = '🌐 **TRẠNG THÁI WEBHOOK**\n';
+          let msg = 'TRANG THAI WEBHOOK\n';
           for (const s of sources) {
             const data = dataStore[s.getter]();
-            const icon = data.updatedAt ? '✅' : '❌';
+            const icon = data.updatedAt ? ':white_check_mark:' : ':x:';
             const time = data.updatedAt
               ? `<t:${Math.floor(data.updatedAt.getTime() / 1000)}:R>`
-              : '🚫 Chưa từng cập nhật';
+              : 'Chua tung cap nhat';
             msg += `\n${icon} ${s.label}: ${time}`;
           }
           if (!webhookStatusMsg) {
@@ -273,8 +235,7 @@ client.once(Events.ClientReady, async c => {
         }
       }, 1800000);
 
-      // Reminder checker every 30 seconds
-      setInterval(() => {
+      addTimer(() => {
         reminders.checkReminders(client).catch(e => console.error('Reminder check failed:', e.message));
       }, 30000);
     }
@@ -282,66 +243,59 @@ client.once(Events.ClientReady, async c => {
     console.error('Failed to announce bot online:', e.message);
   }
 
-  // Post bank command list to bank channel
   try {
     const bankChannel = await client.channels.fetch(CHANNELS.BANK);
     if (bankChannel) {
       await bankChannel.send(
-        `🏦 **NGÂN HÀNG ${CURRENCY_NAME}**\n\n` +
-        `**Các lệnh ngân hàng:**\n` +
-        `- \`/deposit <số tiền>\` hoặc \`!deposit <số tiền>\`: Gửi tiền vào ngân hàng (≥100, bội số 100)\n` +
-        `- \`/withdraw <số tiền>\` hoặc \`!withdraw <số tiền>\`: Rút tiền từ ngân hàng (≥100, bội số 100)\n` +
-        `- \`/loan <số tiền>\` hoặc \`!loan <số tiền>\`: Vay tiền (100–5,000, mỗi 1h/lần)\n` +
-        `- \`/payback <số tiền|all>\` hoặc \`!payback <số tiền|all>\`: Trả nợ\n\n` +
-        `💡 *Các lệnh chỉ hoạt động trong kênh này.*`
+        `**NGAN HANG ${CURRENCY_NAME}**\n\n` +
+        `Cac lenh ngan hang:\n` +
+        `/deposit <so tien> hoac !deposit <so tien>: Gui tien vao ngan hang (>=100, boi so 100)\n` +
+        `/withdraw <so tien> hoac !withdraw <so tien>: Rut tien tu ngan hang (>=100, boi so 100)\n` +
+        `/loan <so tien> hoac !loan <so tien>: Vay tien (100-5,000, moi 1h/lan)\n` +
+        `/payback <so tien|all> hoac !payback <so tien|all>: Tra no\n\n` +
+        `Cac lenh chi hoat dong trong kenh nay.`
       );
     }
   } catch (e) {
     console.error('Failed to post bank commands:', e.message);
   }
 
-  // Start webhook server
   const startWebhookServer = require('./src/webhook-server');
-  startWebhookServer(client);
+  const server = startWebhookServer(client);
+  onCleanup(() => new Promise(resolve => server.close(resolve)));
 
-  // Trigger manual webhook push on startup (sau khi webhook server đã start)
   setTimeout(() => {
-    console.log(`🔄 ${CYAN}Webhook:${NC}  ${NEON_GREEN}Triggering manual update...${NC}`);
-    pushAll().catch(e => console.error(`❌ Manual webhook push failed: ${e.message}`))
+    console.log('[Startup] Triggering webhook update...');
+    pushAll().catch(e => console.error(`Webhook push failed: ${e.message}`))
       .finally(() => displayWebhookStatus());
   }, 2000);
 
-  // --- Polling: Tự động kiểm tra cập nhật mỗi 15 phút (Chỉ chạy nếu không có Smee) ---
   if (!process.env.SMEE_URL) {
     const { checkForUpdatesAndRestart } = require('./src/polling-update');
-    setInterval(checkForUpdatesAndRestart, 15 * 60 * 1000);
-    console.log('🔄 [System] Polling update checker initialized (15 min interval).');
+    addTimer(checkForUpdatesAndRestart, 15 * 60 * 1000);
+    console.log('[System] Polling update: 15 min interval.');
   } else {
-    console.log('📡 [System] Smee detected. Đang khởi tạo Webhook forwarding...');
+    console.log('[System] Starting Smee forwarding...');
     const SmeeClient = require('smee-client');
     const port = process.env.WEBHOOK_PORT || 3000;
     const smee = new SmeeClient({
       source: process.env.SMEE_URL,
       target: `http://127.0.0.1:${port}/webhook/github`,
-      logger: console
+      logger: { info: () => {}, error: console.error }
     });
     smee.start();
-    console.log(`📡 [Smee] Forwarding from ${process.env.SMEE_URL} to 127.0.0.1:${port}`);
+    console.log(`[Smee] Forwarding ${process.env.SMEE_URL} -> 127.0.0.1:${port}`);
   }
 
-  // --- Cron: Tự động cập nhật dữ liệu tin tức/tỷ giá mỗi 1h ---
-  setInterval(() => {
-    console.log('🔄 [Cron] Triggering hourly data update...');
-    pushAll().catch(e => console.error(`❌ Cron update failed: ${e.message}`));
+  addTimer(() => {
+    console.log('[Cron] Hourly data update...');
+    pushAll().catch(e => console.error(`Cron update failed: ${e.message}`));
   }, 60 * 60 * 1000);
 
-  // Auto-restart logic: Exit process after 12 hours (43,200,000 ms)
-  // Startup script or process manager will handle the restart.
-  const TWELVE_HOURS_MS = 12 * 60 * 60 * 1000;
-  setTimeout(() => {
-    console.log('🔄 [System] 12-hour limit reached. Exiting for scheduled restart...');
-    process.exit(0);
-  }, TWELVE_HOURS_MS);
+  addTimeout(() => {
+    console.log('[System] 12h limit reached. Restarting...');
+    gracefulShutdown();
+  }, 12 * 60 * 60 * 1000);
 });
 
 const { slashHandler, handleSlotInteraction } = require('./src/slash');
@@ -370,56 +324,53 @@ client.on(Events.MessageCreate, async message => {
   const args = content.split(/\s+/);
   const command = args[0].toLowerCase();
 
-  // Global Commands
   if (command === '!help' || command === '!h' || command === '!trogiup') {
-    const helpMsg = 
-      `📖 **DANH SÁCH LỆNH CỦA BOT**\n\n` +
-      `🎮 **Trò Chơi:**\n` +
-      `- \`/noitu\`: Nối Từ.\n` +
-      `- \`/taixiu\`: Tài Xỉu.\n` +
-      `- \`/slot <cược>\`: Quay máy Slot Machine.\n` +
-      `- \`/stop\`: Dừng trò chơi.\n\n` +
-      `💰 **Kinh Tế & Cá Nhân:**\n` +
-      `- \`/reward\`: Nhận quà miễn phí mỗi 4 giờ.\n` +
-      `- \`/profile\`: Xem hồ sơ cá nhân.\n` +
-      `- \`/leaderboard\`: Bảng xếp hạng.\n` +
-      `- \`/deposit\`: Gửi tiền ngân hàng.\n` +
-      `- \`/withdraw\`: Rút tiền ngân hàng.\n` +
-      `- \`/loan\`: Vay tiền.\n` +
-      `- \`/payback\`: Trả nợ.\n\n` +
-       `🤖 **Trợ Lý Ảo & Tiện Ích:**\n` +
-       `- \`/ask\`: Hỏi trợ lý AI.\n` +
-       `- \`/remind\`: Đặt nhắc nhở.\n` +
-       `- \`/search\`: Tìm kiếm web.\n\n` +
-       `🎒 **Lụm Rác Delta Force:**\n` +
-       `- \`/scavenge start\`: Vào map lụm rác.\n` +
-       `- \`/storage view\`: Xem kho đồ.\n\n` +
-       `🎣 **Câu Cá:**\n` +
-       `- \`/fishing cast <spot>\`: Thả câu câu cá.\n` +
-       `- \`/fishing inventory\`: Xem giỏ cá.\n` +
-       `- \`/fishing sell\`: Bán cá.\n` +
-       `- \`/fishing stats\`: Thông tin câu cá.\n` +
-       `- \`/fishing shop\`: Cửa hàng dụng cụ.\n` +
-       `- \`/fishing buyrod\`: Mua cần câu.\n` +
-       `- \`/fishing buybait\`: Mua mồi câu.\n\n` +
-       `💡 *Dùng lệnh gạch chéo (/) để có gợi ý tự động!*`;
+    const helpMsg =
+      `**DANH SACH LENH CUA BOT**\n\n` +
+      `**Tro Choi:**\n` +
+      `/noitu: Noi Tu.\n` +
+      `/taixiu: Tai Xiu.\n` +
+      `/slot <cuoc>: Quay Slot Machine.\n` +
+      `/stop: Dung tro choi.\n\n` +
+      `**Kinh Te & Ca Nhan:**\n` +
+      `/reward: Nhan qua mien phi moi 4 gio.\n` +
+      `/profile: Xem ho so ca nhan.\n` +
+      `/leaderboard: Bang xep hang.\n` +
+      `/deposit: Gui tien ngan hang.\n` +
+      `/withdraw: Rut tien ngan hang.\n` +
+      `/loan: Vay tien.\n` +
+      `/payback: Tra no.\n\n` +
+      `**Tro Ly Ao & Tien Ich:**\n` +
+      `/ask: Hoi tro ly AI.\n` +
+      `/remind: Dat nhac nho.\n` +
+      `/search: Tim kiem web.\n\n` +
+      `**Lum Rac Delta Force:**\n` +
+      `/scavenge start: Vao map lum rac.\n` +
+      `/storage view: Xem kho do.\n\n` +
+      `**Cau Ca:**\n` +
+      `/fishing cast <spot>: Tha cau.\n` +
+      `/fishing inventory: Xem gio ca.\n` +
+      `/fishing sell: Ban ca.\n` +
+      `/fishing stats: Thong tin cau ca.\n` +
+      `/fishing shop: Cua hang dung cu.\n` +
+      `/fishing buyrod: Mua can cau.\n` +
+      `/fishing buybait: Mua moi cau.\n\n` +
+      `Dung lenh gach cheo (/) de co goi y tu dong!`;
     message.reply(helpMsg);
     return;
   }
 
-  // Delegate Active Game Logic
   const state = await getGameState(message.channel.id);
-  
+
   if (!state || !state.is_active) return;
 
   if (state.game_type === 'over-under') {
     if (command === '!over' || command === '!under') {
-        const OU_DEDICATED = ['1513076471797776435', '1513076573954117632', '1513076691839488030'];
-        if (!OU_DEDICATED.includes(message.channel.id)) {
-          message.reply('❌ Lệnh Tài Xỉu chỉ sử dụng được trong kênh chuyên dụng.');
-          return;
-        }
-        await overUnderGame.handleMessage(message, state, command, args);
+      if (!CHANNELS.OU_DEDICATED.includes(message.channel.id)) {
+        message.reply('Lenh Tai Xiu chi su dung duoc trong kenh chuyen dung.');
+        return;
+      }
+      await overUnderGame.handleMessage(message, state, command, args);
     }
   } else if (state.game_type === 'noitu') {
     if (content.startsWith('!')) return;
@@ -428,5 +379,5 @@ client.on(Events.MessageCreate, async message => {
 });
 
 client.login(process.env.DISCORD_TOKEN).catch(err => {
-  console.error('❌ Failed to login:', err.message);
+  console.error('Failed to login:', err.message);
 });

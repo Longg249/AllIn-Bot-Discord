@@ -3,13 +3,11 @@ const dataStore = require('./data-store');
 const githubNotifier = require('./github-notifier');
 const { CHANNELS } = require('./config');
 
+const MAX_BODY_SIZE = 1024 * 1024;
+
 module.exports = (client) => {
   const PORT = process.env.WEBHOOK_PORT || 3000;
   const SECRET = process.env.WEBHOOK_SECRET;
-
-  if (!SECRET) {
-    console.warn('⚠️ WEBHOOK_SECRET chưa được cấu hình trong .env');
-  }
 
   const server = http.createServer(async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -24,20 +22,20 @@ module.exports = (client) => {
 
     const path = req.url.split('?')[0];
 
-    // Health check — no auth needed
     if (req.method === 'GET' && path === '/health') {
       const sources = ['crypto', 'exchange', 'fuel', 'news'];
       const status = {};
       for (const key of sources) {
-        const data = dataStore[`get${key.charAt(0).toUpperCase() + key.slice(1)}`]();
+        const getter = `get${key.charAt(0).toUpperCase() + key.slice(1)}`;
+        const data = dataStore[getter]();
         status[key] = {
           updatedAt: data.updatedAt ? data.updatedAt.toISOString() : null,
-          alive: data.updatedAt ? true : false,
+          alive: !!data.updatedAt,
         };
       }
       status.server = { uptime: process.uptime() };
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(status, null, 2));
+      res.end(JSON.stringify(status));
       return;
     }
 
@@ -47,14 +45,13 @@ module.exports = (client) => {
       return;
     }
 
-    // Skip general secret auth for GitHub webhooks (GitHub uses its own signature or we use path-based trust)
     const isGithub = path === '/webhook/github';
-    
+
     if (!isGithub && SECRET) {
       const auth = (req.headers['authorization'] || '').trim();
       const token = auth.startsWith('Bearer ') ? auth.slice(7).trim() : auth;
       if (token !== SECRET) {
-        console.warn(`⚠️ Webhook auth failed: received "${token}", expected "${SECRET}"`);
+        console.warn('Webhook auth failed: token mismatch');
         res.writeHead(401);
         res.end(JSON.stringify({ error: 'Unauthorized' }));
         return;
@@ -62,46 +59,41 @@ module.exports = (client) => {
     }
 
     let body = '';
-    req.on('data', chunk => body += chunk);
+    let bodySize = 0;
+    req.on('data', chunk => {
+      bodySize += chunk.length;
+      if (bodySize > MAX_BODY_SIZE) {
+        res.writeHead(413);
+        res.end(JSON.stringify({ error: 'Payload too large' }));
+        req.destroy();
+        return;
+      }
+      body += chunk;
+    });
     req.on('end', async () => {
+      if (res.headersSent) return;
       try {
         const data = JSON.parse(body);
-        const path = req.url.split('?')[0];
-
-        switch (path) {
-          case '/webhook/github':
-            const githubEvent = req.headers['x-github-event'];
-            if (githubEvent === 'push') {
-              const targetChannel = process.env.GITHUB_CHANNEL || CHANNELS.ANNOUNCE;
-              await githubNotifier.handleGithubPush(client, data, targetChannel);
-            }
-            res.writeHead(200);
-            res.end(JSON.stringify({ ok: true }));
-            break;
-          case '/webhook/news':
-            await handleNewsWebhook(client, data, res);
-            break;
-          case '/webhook/finance':
-            await handleFinanceWebhook(client, data, res);
-            break;
-          case '/webhook/crypto':
-            await handleCryptoWebhook(data, res);
-            break;
-          case '/webhook/xang':
-            await handleFuelWebhook(data, res);
-            break;
-          case '/webhook/tygia':
-            await handleExchangeWebhook(data, res);
-            break;
-          case '/webhook/gold':
-            await handleGoldWebhook(client, data, res);
-            break;
-          default:
-            res.writeHead(404);
-            res.end(JSON.stringify({ error: 'Unknown webhook path' }));
+        const handlers = {
+          '/webhook/github': () => handleGithub(req, client, data),
+          '/webhook/news': () => handleNewsWebhook(client, data),
+          '/webhook/finance': () => handleFinanceWebhook(client, data),
+          '/webhook/crypto': () => handleCryptoWebhook(data),
+          '/webhook/xang': () => handleFuelWebhook(data),
+          '/webhook/tygia': () => handleExchangeWebhook(data),
+          '/webhook/gold': () => handleGoldWebhook(client, data),
+        };
+        const handler = handlers[path];
+        if (handler) {
+          const result = await handler();
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(result));
+        } else {
+          res.writeHead(404);
+          res.end(JSON.stringify({ error: 'Unknown webhook path' }));
         }
       } catch (err) {
-        console.error('Webhook error:', err.message);
+        console.error('Webhook error:', err);
         res.writeHead(400);
         res.end(JSON.stringify({ error: err.message }));
       }
@@ -109,9 +101,20 @@ module.exports = (client) => {
   });
 
   server.listen(PORT, () => {
-    console.log(`🌐 Webhook server listening on port ${PORT}`);
+    console.log(`Webhook server listening on port ${PORT}`);
   });
+
+  return server;
 };
+
+async function handleGithub(req, client, data) {
+  const githubEvent = req.headers['x-github-event'];
+  if (githubEvent === 'push') {
+    const targetChannel = process.env.GITHUB_CHANNEL || CHANNELS.ANNOUNCE;
+    await githubNotifier.handleGithubPush(client, data, targetChannel);
+  }
+  return { ok: true };
+}
 
 async function sendToChannel(client, channelId, content) {
   const channel = await client.channels.fetch(channelId);
@@ -119,28 +122,23 @@ async function sendToChannel(client, channelId, content) {
   return channel.send(content);
 }
 
-async function handleNewsWebhook(client, data, res) {
+async function handleNewsWebhook(client, data) {
   const { channel, items, content } = data;
   let msg = '';
-  
+
   if (items && Array.isArray(items) && items.length > 0) {
-    // Format array items
     dataStore.setNews(items);
-    msg = '📰 **TIN TỨC MỚI NHẤT**\n\n';
+    msg = '**TIN TUC MOI NHAT**\n\n';
     items.forEach((item, i) => {
       msg += `${i + 1}. [${item.title}](${item.link})`;
       if (item.source) msg += ` - *${item.source}*`;
       msg += '\n';
     });
   } else if (content) {
-    // Handle plain text content from pusher
     msg = content;
-    // Mock items for store to show 'alive' status
-    dataStore.setNews([{ title: 'Cập nhật tin tức', link: '#' }]);
+    dataStore.setNews([{ title: 'Cap nhat tin tuc', link: '#' }]);
   } else {
-    res.writeHead(400);
-    res.end(JSON.stringify({ error: 'Need items[] or content string' }));
-    return;
+    throw new Error('Need items[] or content string');
   }
 
   try {
@@ -153,99 +151,45 @@ async function handleNewsWebhook(client, data, res) {
         try {
           await sendToChannel(client, sub.channel_id, msg);
         } catch (e) {
-          console.error(`News webhook: failed to send to ${sub.channel_id}:`, e.message);
+          console.error(`News webhook: failed to send to ${sub.channel_id}:`, e);
         }
       }
     }
-    console.log('📰 News webhook processed');
-    res.writeHead(200);
-    res.end(JSON.stringify({ ok: true }));
   } catch (err) {
-    console.error('News webhook error:', err.message);
-    res.writeHead(500);
-    res.end(JSON.stringify({ error: err.message }));
+    console.error('News webhook error:', err);
+    throw err;
   }
 }
 
-async function handleFinanceWebhook(client, data, res) {
+async function handleFinanceWebhook(client, data) {
   const { channel, content } = data;
-  if (!content) {
-    res.writeHead(400);
-    res.end(JSON.stringify({ error: 'Need content' }));
-    return;
-  }
-
-  try {
-    const target = channel || process.env.FINANCE_CHANNEL || CHANNELS.FINANCE_PUSH;
-    await sendToChannel(client, target, content);
-    console.log('📊 Finance webhook processed');
-    res.writeHead(200);
-    res.end(JSON.stringify({ ok: true }));
-  } catch (err) {
-    console.error('Finance webhook error:', err.message);
-    res.writeHead(500);
-    res.end(JSON.stringify({ error: err.message }));
-  }
+  if (!content) throw new Error('Need content');
+  const target = channel || process.env.FINANCE_CHANNEL || CHANNELS.FINANCE_PUSH;
+  await sendToChannel(client, target, content);
 }
 
-async function handleCryptoWebhook(data, res) {
+async function handleCryptoWebhook(data) {
   const { content } = data;
-  if (!content) {
-    res.writeHead(400);
-    res.end(JSON.stringify({ error: 'Need content' }));
-    return;
-  }
+  if (!content) throw new Error('Need content');
   dataStore.setCrypto(content);
-  console.log('🪙 Crypto data updated via webhook');
-  res.writeHead(200);
-  res.end(JSON.stringify({ ok: true }));
 }
 
-async function handleFuelWebhook(data, res) {
+async function handleFuelWebhook(data) {
   const { content } = data;
-  if (!content) {
-    res.writeHead(400);
-    res.end(JSON.stringify({ error: 'Need content' }));
-    return;
-  }
+  if (!content) throw new Error('Need content');
   dataStore.setFuel(content);
-  console.log('⛽ Fuel price data updated via webhook');
-  res.writeHead(200);
-  res.end(JSON.stringify({ ok: true }));
 }
 
-async function handleExchangeWebhook(data, res) {
+async function handleExchangeWebhook(data) {
   const { content } = data;
-  if (!content) {
-    res.writeHead(400);
-    res.end(JSON.stringify({ error: 'Need content' }));
-    return;
-  }
+  if (!content) throw new Error('Need content');
   dataStore.setExchange(content);
-  console.log('💸 Exchange rate data updated via webhook');
-  res.writeHead(200);
-  res.end(JSON.stringify({ ok: true }));
 }
 
-async function handleGoldWebhook(client, data, res) {
+async function handleGoldWebhook(client, data) {
   const { content, channel } = data;
-  if (!content) {
-    res.writeHead(400);
-    res.end(JSON.stringify({ error: 'Need content' }));
-    return;
-  }
-
+  if (!content) throw new Error('Need content');
   dataStore.setGold(content);
-
-  try {
-    const target = channel || process.env.GOLD_CHANNEL || CHANNELS.FINANCE_PUSH;
-    await sendToChannel(client, target, content);
-    console.log('🥇 Gold webhook processed');
-    res.writeHead(200);
-    res.end(JSON.stringify({ ok: true }));
-  } catch (err) {
-    console.error('Gold webhook error:', err.message);
-    res.writeHead(500);
-    res.end(JSON.stringify({ error: err.message }));
-  }
+  const target = channel || process.env.GOLD_CHANNEL || CHANNELS.FINANCE_PUSH;
+  await sendToChannel(client, target, content);
 }

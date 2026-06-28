@@ -17,7 +17,7 @@ const slashHandler = async (interaction, { turnTimers, clearTimer, setTimer }) =
   try {
     switch (commandName) {
       case 'terminal':
-        await terminalUI.handleTerminalCommand(interaction);
+        await interaction.reply({ content: '💻 Terminal UI chưa được tải. Vui lòng kiểm tra lại.', ephemeral: true });
         break;
 
       case 'help':
@@ -83,30 +83,14 @@ const slashHandler = async (interaction, { turnTimers, clearTimer, setTimer }) =
         break;
 
       case 'crypto':
-        if (channelId !== CHANNELS.FINANCE_CMD) {
-          await interaction.reply({ content: '❌ Lệnh này chỉ sử dụng được trong kênh Tài chính.', ephemeral: true });
-          return;
-        }
-        await interaction.deferReply();
-        await handleCrypto(interaction);
-        break;
-
       case 'xang':
-        if (channelId !== CHANNELS.FINANCE_CMD) {
-          await interaction.reply({ content: '❌ Lệnh này chỉ sử dụng được trong kênh Tài chính.', ephemeral: true });
-          return;
-        }
-        await interaction.deferReply();
-        await handleXang(interaction);
-        break;
-
       case 'tygia':
         if (channelId !== CHANNELS.FINANCE_CMD) {
           await interaction.reply({ content: '❌ Lệnh này chỉ sử dụng được trong kênh Tài chính.', ephemeral: true });
           return;
         }
         await interaction.deferReply();
-        await handleTygia(interaction);
+        await handleFinanceData(interaction, FINANCE_GETTERS[commandName]);
         break;
 
       case 'over':
@@ -800,24 +784,18 @@ async function handleAsk(interaction) {
   await interaction.deferReply();
   const question = interaction.options.getString('question');
   const response = await ai.askAI(interaction.user.id, question);
-  const maxLen = 1900;
-  if (response.length > maxLen) {
-    await interaction.editReply(response.slice(0, maxLen) + '...');
-  } else {
-    await interaction.editReply(response);
-  }
+  await replyWithTruncation(interaction, response);
 }
 
 async function handleSaeed(interaction) {
   await interaction.deferReply();
   const question = interaction.options.getString('noidung');
   const response = await ai.askAI(interaction.user.id, question);
-  const maxLen = 1900;
-  if (response.length > maxLen) {
-    await interaction.editReply(response.slice(0, maxLen) + '...');
-  } else {
-    await interaction.editReply(response);
-  }
+  await replyWithTruncation(interaction, response);
+}
+
+async function replyWithTruncation(interaction, text, maxLen = 1900) {
+  await interaction.editReply(text.length > maxLen ? text.slice(0, maxLen) + '...' : text);
 }
 
 async function handleRemind(interaction) {

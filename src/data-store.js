@@ -9,7 +9,7 @@ const store = {
 // Try to extract first price-like number from text ($12,345 / 12.345 / 12345)
 const extractPrice = (text) => {
   if (!text) return null;
-  const m = text.match(/([\d,]+\.?\d*)/);
+  const m = text.match(/(\d{1,3}(?:,\d{3})*\.?\d*)/);
   if (!m) return null;
   return parseFloat(m[1].replace(/,/g, ''));
 };

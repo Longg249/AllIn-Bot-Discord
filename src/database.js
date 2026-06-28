@@ -4,12 +4,12 @@ const path = require('path');
 const DB_PATH = path.join(__dirname, '..', 'game.db');
 const db = new sqlite3.Database(DB_PATH);
 
-// Constant for currency
+db.run('PRAGMA journal_mode=WAL', () => {});
+
 const CURRENCY_NAME = 'Tekniq Alloy';
 const CURRENCY_ICON = 'https://assetsdelivery.eldorado.gg/v7/_assets_/predefined-offers/v8/233/delta-force-ta.png';
 const STARTING_BALANCE = 10000;
 
-// Helper to run queries as Promises
 const run = (sql, params = []) => {
   return new Promise((resolve, reject) => {
     db.run(sql, params, function(err) {
@@ -37,80 +37,43 @@ const all = (sql, params = []) => {
   });
 };
 
-// Initialize tables
-const init = async () => {
-  await run(`
-    CREATE TABLE IF NOT EXISTS game_state (
-      channel_id TEXT PRIMARY KEY,
-      game_type TEXT,
-      last_word TEXT,
-      last_user_id TEXT,
-      is_active INTEGER DEFAULT 0
-    );
-  `);
-  await run(`
-    CREATE TABLE IF NOT EXISTS used_words (
-      channel_id TEXT,
-      word TEXT,
-      PRIMARY KEY (channel_id, word)
-    );
-  `);
-  await run(`
-  CREATE TABLE IF NOT EXISTS user_scores (
-    user_id TEXT PRIMARY KEY,
-    points INTEGER DEFAULT 0,
-    bank INTEGER DEFAULT 0,
-    loan INTEGER DEFAULT 0,
-    last_loan_at INTEGER DEFAULT 0,
-    last_reward_at INTEGER DEFAULT 0,
-    username TEXT
-  );
-  `);
-  await run(`
-    CREATE TABLE IF NOT EXISTS news_subscriptions (
-      channel_id TEXT PRIMARY KEY
-    );
-  `);
-  await run(`
-    CREATE TABLE IF NOT EXISTS user_storage (
-      user_id TEXT PRIMARY KEY,
-      capacity INTEGER DEFAULT 100
-    );
-  `);
-  await run(`
-    CREATE TABLE IF NOT EXISTS storage_items (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id TEXT NOT NULL,
-      name TEXT NOT NULL,
-      tier TEXT NOT NULL,
-      value INTEGER NOT NULL,
-      acquired_at INTEGER NOT NULL,
-      sold INTEGER DEFAULT 0
-    );
-  `);
-  await run(`
-    CREATE TABLE IF NOT EXISTS df_items (
-      item_id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      icon_url TEXT DEFAULT '',
-      base_price INTEGER DEFAULT 0,
-      price_updated_at INTEGER DEFAULT 0
-    );
-  `);
-  await run(`
-    CREATE TABLE IF NOT EXISTS reminders (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id TEXT NOT NULL,
-      channel_id TEXT,
-      message TEXT NOT NULL,
-      remind_at INTEGER NOT NULL,
-      created_at INTEGER NOT NULL,
-      notified INTEGER DEFAULT 0
-    );
-  `);
-};
+const SCHEMA = [
+  `CREATE TABLE IF NOT EXISTS game_state (
+    channel_id TEXT PRIMARY KEY,
+    game_type TEXT,
+    last_word TEXT,
+    last_user_id TEXT,
+    is_active INTEGER DEFAULT 0
+  )`,
+  `CREATE TABLE IF NOT EXISTS used_words (
+    channel_id TEXT, word TEXT, PRIMARY KEY (channel_id, word)
+  )`,
+  `CREATE TABLE IF NOT EXISTS user_scores (
+    user_id TEXT PRIMARY KEY, points INTEGER DEFAULT 0,
+    bank INTEGER DEFAULT 0, loan INTEGER DEFAULT 0,
+    last_loan_at INTEGER DEFAULT 0, last_reward_at INTEGER DEFAULT 0, username TEXT
+  )`,
+  `CREATE TABLE IF NOT EXISTS news_subscriptions (channel_id TEXT PRIMARY KEY)`,
+  `CREATE TABLE IF NOT EXISTS user_storage (
+    user_id TEXT PRIMARY KEY, capacity INTEGER DEFAULT 100
+  )`,
+  `CREATE TABLE IF NOT EXISTS storage_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT NOT NULL, name TEXT NOT NULL, tier TEXT NOT NULL,
+    value INTEGER NOT NULL, acquired_at INTEGER NOT NULL, sold INTEGER DEFAULT 0
+  )`,
+  `CREATE TABLE IF NOT EXISTS df_items (
+    item_id TEXT PRIMARY KEY, name TEXT NOT NULL, icon_url TEXT DEFAULT '',
+    base_price INTEGER DEFAULT 0, price_updated_at INTEGER DEFAULT 0
+  )`,
+  `CREATE TABLE IF NOT EXISTS reminders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT NOT NULL,
+    channel_id TEXT, message TEXT NOT NULL,
+    remind_at INTEGER NOT NULL, created_at INTEGER NOT NULL, notified INTEGER DEFAULT 0
+  )`,
+];
 
-init();
+const init = Promise.all(SCHEMA.map(sql => run(sql)));
 
 module.exports = {
   getGameState: (channelId) => {
@@ -152,9 +115,7 @@ module.exports = {
     `, [userId, username, points, points, username]);
   },
   getUserProfile: async (userId) => {
-    const user = await get('SELECT * FROM user_scores WHERE user_id = ?', [userId]);
-    if (user) return user;
-    await run('INSERT INTO user_scores (user_id, username, points) VALUES (?, ?, ?)', [userId, 'Unknown', STARTING_BALANCE]);
+    await run('INSERT OR IGNORE INTO user_scores (user_id, username, points) VALUES (?, ?, ?)', [userId, 'Unknown', STARTING_BALANCE]);
     return get('SELECT * FROM user_scores WHERE user_id = ?', [userId]);
   },
   claimReward: async (userId, username, amount) => {
@@ -206,9 +167,8 @@ module.exports = {
     await run('INSERT OR IGNORE INTO user_storage (user_id, capacity) VALUES (?, 100)', [userId]);
   },
   getStorage: async (userId) => {
-    const info = await get('SELECT * FROM user_storage WHERE user_id = ?', [userId]);
-    if (!info) { await run('INSERT INTO user_storage (user_id, capacity) VALUES (?, 100)', [userId]); return { user_id: userId, capacity: 100 }; }
-    return info;
+    await run('INSERT OR IGNORE INTO user_storage (user_id, capacity) VALUES (?, 100)', [userId]);
+    return get('SELECT * FROM user_storage WHERE user_id = ?', [userId]);
   },
   getStorageItems: async (userId, sold = 0) => {
     return all('SELECT * FROM storage_items WHERE user_id = ? AND sold = ? ORDER BY acquired_at DESC', [userId, sold]);

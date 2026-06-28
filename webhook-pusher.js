@@ -12,7 +12,7 @@ const parser = new Parser({
 axiosRetry.default(axios, { retries: 2, retryDelay: axiosRetry.exponentialDelay });
 
 const WEBHOOK_BASE = process.env.WEBHOOK_URL || `http://localhost:${process.env.WEBHOOK_PORT || 3000}`;
-const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || 'noitu-webhook-secret';
+const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
 
 function authHeader() {
   return { Authorization: 'Bearer ' + WEBHOOK_SECRET };
@@ -42,7 +42,9 @@ async function fetchNews() {
       return [];
     }
   }));
-  return results.flat().sort(() => Math.random() - 0.5).slice(0, 5);
+  const flat = results.flat();
+  const shuffled = flat.sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, 5);
 }
 
 // ─── Tỷ giá ───
