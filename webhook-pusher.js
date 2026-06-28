@@ -11,7 +11,7 @@ const parser = new Parser({
 
 axiosRetry.default(axios, { retries: 2, retryDelay: axiosRetry.exponentialDelay });
 
-const WEBHOOK_BASE = process.env.WEBHOOK_URL || 'http://localhost:3000';
+const WEBHOOK_BASE = process.env.WEBHOOK_URL || `http://localhost:${process.env.WEBHOOK_PORT || 3000}`;
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || 'noitu-webhook-secret';
 
 function authHeader() {

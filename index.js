@@ -173,11 +173,6 @@ client.once(Events.ClientReady, async c => {
   console.log(`⌨️  ${CYAN}Commands:${NC}  ${NEON_GREEN}${commands.length} REG${NC}    | 🏆 ${CYAN}Economy:${NC}   ${NEON_GREEN}${topPlayersResult[0]?.username || 'N/A'}${NC}`);
   console.log(`${NEON_PINK}──────────────────────────────────────────────────────────────${NC}`);
   
-  // Trigger manual webhook push on startup
-  console.log(`🔄 ${CYAN}Webhook:${NC}  ${NEON_GREEN}Triggering manual update...${NC}`);
-  pushAll().catch(e => console.error(`❌ Manual webhook push failed: ${e.message}`))
-    .finally(() => displayWebhookStatus());
-
   function displayWebhookStatus() {
     console.log(`\n${WHITE}--- [ WEBHOOK STATUS (Real-time) ] ---${NC}`);
     let latest = 0;
@@ -308,6 +303,13 @@ client.once(Events.ClientReady, async c => {
   // Start webhook server
   const startWebhookServer = require('./src/webhook-server');
   startWebhookServer(client);
+
+  // Trigger manual webhook push on startup (sau khi webhook server đã start)
+  setTimeout(() => {
+    console.log(`🔄 ${CYAN}Webhook:${NC}  ${NEON_GREEN}Triggering manual update...${NC}`);
+    pushAll().catch(e => console.error(`❌ Manual webhook push failed: ${e.message}`))
+      .finally(() => displayWebhookStatus());
+  }, 2000);
 
   // --- Polling: Tự động kiểm tra cập nhật mỗi 15 phút (Chỉ chạy nếu không có Smee) ---
   if (!process.env.SMEE_URL) {
